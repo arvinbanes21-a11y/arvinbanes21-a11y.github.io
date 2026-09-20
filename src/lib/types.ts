@@ -68,7 +68,7 @@ export const INITIAL_LIGHT_PROFILE: Profile = {
   heroHeadline: "Hi, I'm Arvin F. Bañes",
   heroSubtext: "I’m a fourth-year Computer Science student at the University of San Agustin with hands-on experience building functional, launch-ready web and mobile projects. Willing to help individuals and small businesses turn their ideas into practical, user-friendly websites and apps. I bring care, curiosity, and a willingness to learn to every project.",
   bio: "Computer Science undergraduate focused on building practical, intelligent, and visually appealing digital experiences. My experience spans full-stack web development, mobile applications, AI engineering, computer vision, augmented reality, data science, and cybersecurity, with a strong interest in both software development and interface design.\n\nI enjoy turning ideas into complete systems—from planning the architecture and user experience to designing clean interfaces, integrating APIs and databases, and implementing intelligent features. My recent work includes AI-powered learning tools, automated scheduling systems, online platforms, and research involving monocular depth estimation, computer vision, and AR-assisted food volume estimation.\n\nMy goal is to create technology that is not only functional and technically capable, but also intuitive, visually appealing, and enjoyable to use.",
-  portraitUrl: "/profile-picture.jpeg",
+  portraitUrl: "/profile-picture-optimized.jpg",
   resumeUrl: "/resume.pdf",
   aboutHeadline: "Computer Science Student & Innovator.",
   philosophy: "Architecting end-to-end full-stack and mobile applications with clean database schemas, responsive UI systems, and cutting-edge AR/computer vision capabilities.",
@@ -171,7 +171,7 @@ export const INITIAL_DARK_PROFILE: Profile = {
   heroHeadline: "Breaking Things Beautifully.",
   heroSubtext: "Built on caffeine, bad decisions, 3 AM epiphanies, and a suspicious number of open browser tabs.",
   bio: "Welcome to the flipside. When the corporate lights turn off, the terminal comes alive. Experimentation over perfection, speed over consensus, and memes over slides.",
-  portraitUrl: "/dark-profile.png",
+  portraitUrl: "/dark-profile-optimized.jpg",
   resumeUrl: "/resume.pdf",
   aboutHeadline: "The Night Owl Builder.",
   philosophy: "I believe software should be fast, sharp, and slightly unpredictable. If a user interface feels like every other SaaS boilerplate, it lacks soul. We test boundaries, break constraints, and fix them before anyone notices.",
@@ -343,11 +343,63 @@ export interface Certificate {
   credentialId?: string;
   verificationUrl?: string;
   image: string;
+  showcaseImage?: string;
   skills: string[];
   category: string;
   description: string;
   order: number;
 }
+
+export const DARK_MODE_MOCK_CERTIFICATES: Certificate[] = [
+  {
+    id: "mock-cert-kamote-fundamentals",
+    title: "Kamote Fundamentals",
+    issuer: "Kamote Academy",
+    issueDate: "Oct 26, 2023",
+    credentialId: "KA-KF-23001",
+    image: "/certs/mock-kamote-fundamentals.jpeg",
+    skills: ["Urban Maneuverability", "Defensive Riding", "Potato Avoidance"],
+    category: "Motorcycle Training",
+    description: "A mock certificate recognizing completion of the Kamote Fundamentals program.",
+    order: 1
+  },
+  {
+    id: "mock-cert-selena-god",
+    title: "Certified Selena God",
+    issuer: "Institute of Mobile Legends",
+    issueDate: "Nov 23, 2023",
+    credentialId: "MLBB-C-SG-23005",
+    image: "/certs/mock-selena-god.jpeg",
+    skills: ["Roam Core", "Map Awareness", "Team Strategy"],
+    category: "Mobile Gaming",
+    description: "A mock certificate recognizing exceptional dedication to the Selena roam role.",
+    order: 2
+  },
+  {
+    id: "mock-cert-vibe-coding",
+    title: "Vibe Coding",
+    issuer: "YouTube University",
+    issueDate: "2023",
+    credentialId: "YTU-VIBE-001",
+    image: "/certs/mock-vibe-coding.jpeg",
+    skills: ["Creative Coding", "Digital Building", "Problem Solving"],
+    category: "Creative Technology",
+    description: "A mock certificate for completing a course in purposeful vibe coding.",
+    order: 3
+  },
+  {
+    id: "mock-cert-computer-sayangs",
+    title: "Computer Sayangs",
+    issuer: "Enchong Dee University",
+    issueDate: "2023",
+    credentialId: "EDU-ACHV-BANES-001",
+    image: "/certs/mock-computer-sayangs.jpeg",
+    skills: ["Loyal sa hindi kami", "Continuous Yearning", "Ako nalang"],
+    category: "Computer Studies",
+    description: "A mock certificate celebrating dedication to computer studies.",
+    order: 4
+  }
+];
 
 export const INITIAL_CERTIFICATES: Certificate[] = [
   {
@@ -358,6 +410,7 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     credentialId: "CISCO-IDS-2026-AB",
     verificationUrl: "/certs/intro-to-data-science.pdf",
     image: "/certs/intro-to-data-science.png",
+    showcaseImage: "/certs/showcase-data-science.png",
     skills: ["Data Analytics", "AI & Machine Learning", "Data Exploration", "Statistical Modeling", "Python Basics"],
     category: "Data Science & AI",
     description: "Successfully achieved student level credential from Cisco Networking Academy covering data analytics fundamentals, exploring career paths, and understanding the role of data in modern AI and Machine Learning.",
@@ -371,6 +424,7 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     credentialId: "CISCO-JSE1-2026-AB",
     verificationUrl: "/certs/javascript-essentials-1.pdf",
     image: "/certs/javascript-essentials-1.png",
+    showcaseImage: "/certs/showcase-javascript-essentials.png",
     skills: ["JavaScript (ES6+)", "Core Algorithms", "Data Types & Scope", "Functions & Control Flow", "Debugging & Error Handling"],
     category: "Web Development & Programming",
     description: "Statement of Achievement in collaboration with OpenEDG JavaScript Institute. Demonstrates proficiency in JavaScript core syntax, algorithmic problem solving, primitive/complex data types, and runtime program execution.",
@@ -416,4 +470,3 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     order: 5
   }
 ];
-

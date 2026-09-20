@@ -1,10 +1,15 @@
-'use me';
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Profile, Project, Certificate, INITIAL_LIGHT_PROFILE, INITIAL_DARK_PROFILE, INITIAL_PROJECTS, INITIAL_CERTIFICATES } from '@/lib/types';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import {
+  Profile,
+  Project,
+  Certificate,
+  INITIAL_LIGHT_PROFILE,
+  INITIAL_DARK_PROFILE,
+  INITIAL_PROJECTS,
+  INITIAL_CERTIFICATES,
+} from '@/lib/types';
 
 interface ThemeContextType {
   isDark: boolean;
@@ -19,6 +24,9 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const HAS_FIREBASE_CONFIG = Boolean(
+  process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDark, setIsDark] = useState(false);
@@ -34,21 +42,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setLightProfile(updated);
       try {
         localStorage.setItem('profile_light', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('localStorage quota exceeded for profile_light cache, updating in memory state:', err);
+      } catch (error) {
+        console.warn('Could not cache the light profile:', error);
       }
     } else {
       setDarkProfile(updated);
       try {
         localStorage.setItem('profile_dark', JSON.stringify(updated));
-      } catch (err) {
-        console.warn('localStorage quota exceeded for profile_dark cache, updating in memory state:', err);
+      } catch (error) {
+        console.warn('Could not cache the dark profile:', error);
       }
     }
   };
 
-  const refreshData = async () => {
-    // Check localStorage cache first for immediate client persistence
+  const hydrateLocalData = () => {
     const savedLight = localStorage.getItem('profile_light');
     if (savedLight) {
       try {
@@ -61,11 +68,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           skillCategories: INITIAL_LIGHT_PROFILE.skillCategories,
           experiences: INITIAL_LIGHT_PROFILE.experiences,
         });
-      } catch (e) {
+      } catch {
         setLightProfile(INITIAL_LIGHT_PROFILE);
       }
-    } else {
-      setLightProfile(INITIAL_LIGHT_PROFILE);
     }
 
     const savedDark = localStorage.getItem('profile_dark');
@@ -79,108 +84,124 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           skillCategories: INITIAL_DARK_PROFILE.skillCategories,
           experiences: INITIAL_DARK_PROFILE.experiences,
         });
-      } catch (e) {
+      } catch {
         setDarkProfile(INITIAL_DARK_PROFILE);
       }
-    } else {
-      setDarkProfile(INITIAL_DARK_PROFILE);
     }
 
     const savedProjects = localStorage.getItem('cached_projects');
     if (savedProjects) {
       try {
         const parsed = JSON.parse(savedProjects);
-        if (Array.isArray(parsed) && parsed.length >= INITIAL_PROJECTS.length) {
-          setProjectsList(parsed);
-        } else {
-          setProjectsList(INITIAL_PROJECTS);
-        }
-      } catch (e) {
+        setProjectsList(
+          Array.isArray(parsed) && parsed.length >= INITIAL_PROJECTS.length
+            ? parsed
+            : INITIAL_PROJECTS
+        );
+      } catch {
         setProjectsList(INITIAL_PROJECTS);
       }
-    } else {
-      setProjectsList(INITIAL_PROJECTS);
     }
 
-    const savedCerts = localStorage.getItem('cached_certificates');
-    if (savedCerts) {
+    const savedCertificates = localStorage.getItem('cached_certificates');
+    if (savedCertificates) {
       try {
-        const parsed = JSON.parse(savedCerts);
-        // If parsed certs still contain outdated unsplash placeholders for the first two certs, sync with INITIAL_CERTIFICATES
-        if (Array.isArray(parsed) && parsed.some(c => c.id === 'cert-intro-data-science' || c.image?.startsWith('/certs/'))) {
-          setCertificatesList(parsed);
-        } else {
-          setCertificatesList(INITIAL_CERTIFICATES);
-        }
-      } catch (e) {
+        const parsed = JSON.parse(savedCertificates);
+        const hasCurrentCertificates = Array.isArray(parsed) && parsed.some(
+          (certificate) => certificate.id === 'cert-intro-data-science' || certificate.image?.startsWith('/certs/')
+        );
+        setCertificatesList(hasCurrentCertificates ? parsed : INITIAL_CERTIFICATES);
+      } catch {
         setCertificatesList(INITIAL_CERTIFICATES);
       }
-    } else {
-      setCertificatesList(INITIAL_CERTIFICATES);
-    }
-
-    try {
-      // Fetch Light Profile from Firestore
-      const lightDoc = await getDoc(doc(db, 'profile', 'light'));
-      if (lightDoc.exists()) {
-        const data = lightDoc.data() as Profile;
-        setLightProfile(data);
-      }
-
-      // Fetch Dark Profile from Firestore
-      const darkDoc = await getDoc(doc(db, 'profile_dark', 'dark'));
-      if (darkDoc.exists()) {
-        const fetchedDarkProfile = darkDoc.data() as Profile;
-        setDarkProfile(fetchedDarkProfile);
-      }
-
-      // Fetch Projects from Firestore
-      const projectsSnap = await getDocs(collection(db, 'projects'));
-      if (!projectsSnap.empty) {
-        const fetched: Project[] = projectsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Project));
-        setProjectsList(fetched);
-      }
-
-      // Fetch Certificates from Firestore
-      const certsSnap = await getDocs(collection(db, 'certificates'));
-      if (!certsSnap.empty) {
-        const fetchedCerts: Certificate[] = certsSnap.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Certificate));
-        setCertificatesList(fetchedCerts);
-      }
-    } catch (e) {
-      console.warn("Using local fallback seed state:", e);
-    } finally {
-      setLoading(false);
     }
   };
 
+  const syncRemoteData = async () => {
+    if (!HAS_FIREBASE_CONFIG || !navigator.onLine) return;
+
+    try {
+      const [{ db }, firestore] = await Promise.all([
+        import('@/lib/firebase'),
+        import('firebase/firestore'),
+      ]);
+      const { doc, getDoc, collection, getDocs } = firestore;
+
+      const [lightResult, darkResult, projectsResult, certificatesResult] = await Promise.allSettled([
+        getDoc(doc(db, 'profile', 'light')),
+        getDoc(doc(db, 'profile_dark', 'dark')),
+        getDocs(collection(db, 'projects')),
+        getDocs(collection(db, 'certificates')),
+      ]);
+
+      if (lightResult.status === 'fulfilled' && lightResult.value.exists()) {
+        setLightProfile(lightResult.value.data() as Profile);
+      }
+      if (darkResult.status === 'fulfilled' && darkResult.value.exists()) {
+        setDarkProfile(darkResult.value.data() as Profile);
+      }
+
+      if (projectsResult.status === 'fulfilled' && !projectsResult.value.empty) {
+        setProjectsList(projectsResult.value.docs.map((projectDoc) => ({
+          id: projectDoc.id,
+          ...projectDoc.data(),
+        } as Project)));
+      }
+
+      if (certificatesResult.status === 'fulfilled' && !certificatesResult.value.empty) {
+        setCertificatesList(certificatesResult.value.docs.map((certificateDoc) => ({
+          id: certificateDoc.id,
+          ...certificateDoc.data(),
+        } as Certificate)));
+      }
+    } catch (error) {
+      console.warn('Using local portfolio data:', error);
+    }
+  };
+
+  const refreshData = async () => {
+    setLoading(true);
+    hydrateLocalData();
+    await syncRemoteData();
+    setLoading(false);
+  };
+
   useEffect(() => {
-    refreshData();
+    hydrateLocalData();
+    setLoading(false);
+
+    if (!HAS_FIREBASE_CONFIG) return;
+    const idleWindow = window as typeof window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    let syncStarted = false;
+    const runRemoteSync = () => {
+      if (syncStarted || !navigator.onLine) return;
+      syncStarted = true;
+      void syncRemoteData();
+    };
+    const idleHandle = idleWindow.requestIdleCallback?.(runRemoteSync, { timeout: 6000 });
+    const timer = idleHandle === undefined
+      ? window.setTimeout(runRemoteSync, 4500)
+      : undefined;
+    window.addEventListener('online', runRemoteSync);
+
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      if (idleHandle !== undefined) idleWindow.cancelIdleCallback?.(idleHandle);
+      window.removeEventListener('online', runRemoteSync);
+    };
   }, []);
 
   const toggleTheme = () => {
     setIsGlitching(true);
-    setTimeout(() => {
-      setIsDark((prev) => !prev);
-    }, 200);
-
-    setTimeout(() => {
-      setIsGlitching(false);
-    }, 450);
+    window.setTimeout(() => setIsDark((previous) => !previous), 200);
+    window.setTimeout(() => setIsGlitching(false), 450);
   };
 
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
 
   const activeProfile = isDark ? darkProfile : lightProfile;
@@ -208,8 +229,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
   return context;
 }

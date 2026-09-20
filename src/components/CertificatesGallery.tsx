@@ -1,153 +1,291 @@
 'use client';
 
-import React from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import {
-  ExternalLink,
-  FileText
+  ArrowUpRight,
+  Award,
+  Bike,
+  Brain,
+  Calendar,
+  Cloud,
+  Code2,
+  Download,
+  FileText,
+  Gamepad2,
+  Layers,
+  Monitor,
+  ShieldCheck,
+  Sparkles,
+  X,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { gsap } from 'gsap';
 import { Certificate } from '@/lib/types';
 import { useTheme } from '@/context/ThemeContext';
-import ScrollReveal from '@/components/ScrollReveal';
+import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
+import styles from './CertificatesGallery.module.css';
 
 interface CertificatesGalleryProps {
   certificates: Certificate[];
+  defaultIndex?: number;
 }
 
-export default function CertificatesGallery({ certificates }: CertificatesGalleryProps) {
-  const { isDark } = useTheme();
+interface CertificateKind {
+  icon: LucideIcon;
+  color: string;
+}
 
-  const glassStyle: React.CSSProperties = {
-    background: isDark ? 'rgba(15, 23, 42, 0.75)' : 'rgba(255, 255, 255, 0.85)',
-    backdropFilter: 'blur(20px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+function getCertificateKind(certificate: Certificate): CertificateKind {
+  const content = `${certificate.category || ''} ${certificate.title || ''}`.toLowerCase();
+
+  if (content.includes('data science')) return { icon: Brain, color: '#38bdf8' };
+  if (content.includes('javascript') || content.includes('web development')) return { icon: Code2, color: '#fbbf24' };
+  if (content.includes('cloud') || content.includes('artificial intelligence')) return { icon: Cloud, color: '#38bdf8' };
+  if (content.includes('cyber') || content.includes('security')) return { icon: ShieldCheck, color: '#34d399' };
+  if (content.includes('software') || content.includes('full-stack')) return { icon: Layers, color: '#a78bfa' };
+  if (content.includes('motorcycle')) return { icon: Bike, color: '#fb923c' };
+  if (content.includes('gaming') || content.includes('selena')) return { icon: Gamepad2, color: '#f472b6' };
+  if (content.includes('creative') || content.includes('vibe')) return { icon: Sparkles, color: '#c084fc' };
+  if (content.includes('computer')) return { icon: Monitor, color: '#fbbf24' };
+
+  return { icon: Award, color: '#fbbf24' };
+}
+
+export default function CertificatesGallery({ certificates, defaultIndex = 0 }: CertificatesGalleryProps) {
+  const { isDark } = useTheme();
+  const performanceProfile = usePerformanceProfile();
+  const displayCertificates = certificates.slice(0, 5);
+  const [activeIndex, setActiveIndex] = useState(() => (
+    Math.min(Math.max(defaultIndex, 0), Math.max(displayCertificates.length - 1, 0))
+  ));
+  const [previewCertificate, setPreviewCertificate] = useState<Certificate | null>(null);
+  const panelRefs = useRef<Array<HTMLElement | null>>([]);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const firstRenderRef = useRef(true);
+  const isCompact = performanceProfile.ready && (
+    performanceProfile.isMobile || performanceProfile.hasCoarsePointer
+  );
+  const prefersReducedMotion = performanceProfile.prefersReducedMotion;
+  const total = displayCertificates.length;
+
+  useEffect(() => {
+    if (activeIndex >= total) setActiveIndex(0);
+  }, [activeIndex, total]);
+
+  useEffect(() => {
+    if (!previewCertificate) return;
+
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') setPreviewCertificate(null);
+    };
+
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [previewCertificate]);
+
+  const animatePanels = useCallback((animate: boolean) => {
+    if (isCompact) return;
+    const panels = panelRefs.current.filter((panel): panel is HTMLElement => Boolean(panel));
+    if (panels.length === 0) return;
+
+    const expandedRatio = 0.56;
+    const expandedGrow = total > 1 ? (expandedRatio * (total - 1)) / (1 - expandedRatio) : 1;
+    const duration = animate && !prefersReducedMotion ? 0.58 : 0;
+
+    const context = gsap.context(() => {
+      panels.forEach((panel, index) => {
+        const isActive = index === activeIndex;
+        const direction = index < activeIndex ? 1 : -1;
+        const media = panel.querySelector<HTMLElement>('[data-certificate-media]');
+
+        gsap.to(panel, {
+          flexGrow: isActive ? expandedGrow : 1,
+          rotateY: isActive ? 0 : direction * 7,
+          duration,
+          ease: 'power3.out',
+          overwrite: true,
+        });
+
+        if (media) {
+          gsap.to(media, {
+            x: isActive ? 0 : direction * 10,
+            duration,
+            ease: 'power3.out',
+            overwrite: true,
+          });
+        }
+      });
+    }, rootRef);
+
+    return () => context.revert();
+  }, [activeIndex, isCompact, prefersReducedMotion, total]);
+
+  useLayoutEffect(() => {
+    const cleanup = animatePanels(!firstRenderRef.current);
+    firstRenderRef.current = false;
+    return cleanup;
+  }, [animatePanels]);
+
+  const selectCertificate = (index: number) => setActiveIndex(index);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      const next = (index + 1) % total;
+      selectCertificate(next);
+      panelRefs.current[next]?.querySelector('button')?.focus();
+    }
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const previous = (index - 1 + total) % total;
+      selectCertificate(previous);
+      panelRefs.current[previous]?.querySelector('button')?.focus();
+    }
   };
 
+  if (total === 0) return null;
+
   return (
-    <div className="w-full select-none">
-      
-      {/* Certificate Windows Grid (Landscape Proportions) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {certificates.slice(0, 5).map((cert, idx) => {
-          return (
-            <ScrollReveal key={cert.id} direction="up" delay={idx * 70}>
-              <div
-                onClick={() => {
-                  const targetUrl = cert.verificationUrl || cert.image;
-                  if (targetUrl) {
-                    window.open(targetUrl, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                style={glassStyle}
-                className="group relative h-[320px] sm:h-[350px] rounded-2xl overflow-hidden cursor-pointer border border-slate-200/90 dark:border-slate-800/90 shadow-xl transition-all duration-500 hover:-translate-y-2 hover:scale-[1.015] hover:shadow-2xl hover:border-amber-400/80 dark:hover:border-amber-400/70 flex flex-col justify-between"
-              >
-                
-                {/* 1. Window Titlebar Header */}
-                <div className="flex items-center justify-between px-4 py-2.5 bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800/80 z-20">
-                  
-                  {/* Left: Window Dots & Issuer */}
-                  <div className="flex items-center space-x-2.5">
-                    <div className="flex space-x-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                    </div>
-                    <span className="text-[11px] font-mono font-bold tracking-wider text-slate-600 dark:text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
-                      {cert.issuer}
-                    </span>
-                  </div>
+    <div
+      ref={rootRef}
+      className={styles.gallery}
+      role="list"
+      aria-label="Certificates and honors"
+      style={{
+        '--cg-accent': isDark ? '#fbbf24' : '#dbeafe',
+        '--cg-accent-rgb': isDark ? '251, 191, 36' : '219, 234, 254',
+        '--cg-overlay': isDark ? '8, 15, 32' : '15, 39, 79',
+      } as CSSProperties}
+    >
+      {displayCertificates.map((certificate, index) => {
+        const isActive = index === activeIndex;
+        const previewUrl = certificate.image;
+        const documentUrl = certificate.verificationUrl;
+        const hasPdfDocument = Boolean(documentUrl?.toLowerCase().endsWith('.pdf'));
+        const kind = getCertificateKind(certificate);
+        const KindIcon = kind.icon;
 
-                  {/* Right: Verified Pill & Year */}
-                  <div className="flex items-center space-x-2">
-                    <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>{cert.issueDate}</span>
-                    </span>
-                  </div>
-                </div>
+        return (
+          <article
+            key={certificate.id}
+            ref={(element) => { panelRefs.current[index] = element; }}
+            className={styles.panel}
+            data-active={isActive}
+            role="listitem"
+            style={{
+              '--panel-dim': isActive ? 0 : 0.42,
+              '--panel-gray': isActive ? 0 : 1,
+              '--kind-color': kind.color,
+            } as CSSProperties}
+            onMouseEnter={() => {
+              if (!isCompact) selectCertificate(index);
+            }}
+          >
+            <div className={styles.media} data-certificate-media>
+              <img src={certificate.showcaseImage || certificate.image} alt="" loading="lazy" decoding="async" draggable={false} />
+            </div>
 
-                {/* 2. Window Main Body: Certificate Image Preview */}
-                <div className="relative flex-1 w-full overflow-hidden bg-slate-950/20">
-                  <img
-                    src={cert.image}
-                    alt={cert.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
+            <div className={styles.categoryCanvas} aria-hidden="true">
+              <span className={styles.categoryMark}>
+                <KindIcon className="h-7 w-7" strokeWidth={1.8} />
+              </span>
+            </div>
 
-                  {/* Idle Bottom Bar: Certificate Title */}
-                  <div className="absolute bottom-0 inset-x-0 p-3.5 bg-gradient-to-t from-slate-950/90 via-slate-950/60 to-transparent z-10 transition-opacity duration-300 group-hover:opacity-0">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400 block">
-                      {cert.category}
-                    </span>
-                    <h3 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate">
-                      {cert.title}
-                    </h3>
-                  </div>
+            <button
+              type="button"
+              className={styles.panelButton}
+              aria-expanded={isActive}
+              aria-label={`${isActive ? 'Selected' : 'Select'} certificate: ${certificate.title}`}
+              onClick={() => selectCertificate(index)}
+              onFocus={() => selectCertificate(index)}
+              onKeyDown={(event) => handleKeyDown(event, index)}
+            />
 
-                  {/* 3. Hover Overlay Drawer: Brief Description & Skills Reveal */}
-                  <div className="absolute inset-0 bg-slate-950/85 dark:bg-slate-950/90 backdrop-blur-md p-5 flex flex-col justify-between opacity-0 group-hover:opacity-100 transition-all duration-400 z-30 translate-y-2 group-hover:translate-y-0">
-                    
-                    {/* Top of Hover Drawer: Category & Title */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-400">
-                          {cert.category}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400">
-                          ID: {cert.credentialId || 'VERIFIED'}
-                        </span>
-                      </div>
-
-                      <h4 className="text-base font-extrabold text-white tracking-tight leading-snug">
-                        {cert.title}
-                      </h4>
-
-                      {/* Brief Description */}
-                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed line-clamp-3 pt-1">
-                        {cert.description}
-                      </p>
-                    </div>
-
-                    {/* Bottom of Hover Drawer: Skills Pills & Open Official PDF Action */}
-                    <div className="space-y-3 pt-2 border-t border-slate-800">
-                      {cert.skills && cert.skills.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {cert.skills.slice(0, 3).map((skill, sIdx) => (
-                            <span
-                              key={sIdx}
-                              className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-400/10 text-amber-300 border border-amber-400/20"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                          {cert.skills.length > 3 && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 bg-slate-800">
-                              +{cert.skills.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between text-xs font-mono font-bold text-amber-400 group-hover:text-amber-300">
-                        <span className="flex items-center gap-1.5">
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Open Official PDF</span>
-                        </span>
-                        <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* Subtle Specular Top Light Bar */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent pointer-events-none z-30" />
+            <div className={styles.content} data-active={isActive} aria-hidden={!isActive}>
+              <span className={styles.eyebrow}>{certificate.issuer}</span>
+              <h3 className={styles.title}>{certificate.title}</h3>
+              <p className={styles.description}>{certificate.description}</p>
+              <div className={styles.actions}>
+                {previewUrl && (
+                  <button
+                    type="button"
+                    className={styles.primaryAction}
+                    onClick={() => setPreviewCertificate(certificate)}
+                  >
+                    View certificate <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                )}
+                {hasPdfDocument ? (
+                  <a
+                    href={documentUrl}
+                    download
+                    className={styles.iconAction}
+                    aria-label={`Download PDF for ${certificate.title}`}
+                    tabIndex={isActive ? 0 : -1}
+                  >
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                  </a>
+                ) : (
+                  <span className={styles.iconAction} aria-hidden="true">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                )}
+                {certificate.issueDate && (
+                  <span className={styles.meta}>
+                    <Calendar className="mr-1 inline h-3 w-3" aria-hidden="true" />{certificate.issueDate}
+                  </span>
+                )}
               </div>
-            </ScrollReveal>
-          );
-        })}
-      </div>
+            </div>
+          </article>
+        );
+      })}
 
+      {previewCertificate && (
+        <div
+          className={styles.previewBackdrop}
+          role="presentation"
+          onMouseDown={() => setPreviewCertificate(null)}
+        >
+          <section
+            className={styles.previewDialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="certificate-preview-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className={styles.previewHeader}>
+              <div className={styles.previewHeading}>
+                <span>{previewCertificate.issuer}</span>
+                <h3 id="certificate-preview-title">{previewCertificate.title}</h3>
+              </div>
+              <button
+                type="button"
+                className={styles.closeButton}
+                onClick={() => setPreviewCertificate(null)}
+                aria-label="Close certificate preview"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </header>
+
+            <div className={styles.previewImageStage}>
+              <img src={previewCertificate.image} alt={previewCertificate.title} />
+            </div>
+
+            <footer className={styles.previewFooter}>
+              <span>{previewCertificate.issueDate}</span>
+              {previewCertificate.verificationUrl?.toLowerCase().endsWith('.pdf') && (
+                <a href={previewCertificate.verificationUrl} download className={styles.downloadAction}>
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                  Download PDF
+                </a>
+              )}
+            </footer>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

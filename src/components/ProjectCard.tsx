@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Project } from '@/lib/types';
 import { ArrowUpRight } from 'lucide-react';
 
@@ -27,7 +26,9 @@ export default function ProjectCard({ project, isFeatured = false }: ProjectCard
             <img
               src={project.coverImage}
               alt={project.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-103"
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-400 dark:text-slate-500 text-sm bg-slate-100 dark:bg-slate-900">

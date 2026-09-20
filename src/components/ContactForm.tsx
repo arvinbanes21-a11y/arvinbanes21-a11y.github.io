@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
 import { Send, CheckCircle, AlertCircle, Mail, MapPin, Clock, Copy, Check, Sparkles, RefreshCw } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import ScrollReveal from '@/components/ScrollReveal';
+import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
 
 export default function ContactForm() {
   const { isDark } = useTheme();
+  const performanceProfile = usePerformanceProfile();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [projectBrief, setProjectBrief] = useState('');
@@ -23,6 +23,10 @@ export default function ContactForm() {
   const contactEmail = 'arvinf.banes@gmail.com';
 
   useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsRevealed(true);
+      return;
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -39,9 +43,13 @@ export default function ContactForm() {
     if (el) observer.observe(el);
 
     return () => {
-      if (el) observer.unobserve(el);
+      observer.disconnect();
     };
   }, []);
+
+  const reducedEffects = performanceProfile.prefersReducedMotion || performanceProfile.tier === 'static';
+  const mobileEffects = performanceProfile.isMobile || performanceProfile.hasCoarsePointer;
+  const revealVisible = reducedEffects || isRevealed;
 
   const handleReplayReveal = () => {
     setIsRevealed(false);
@@ -85,22 +93,30 @@ export default function ContactForm() {
         throw new Error(data.error || 'Failed to send message.');
       }
 
-      // 2. Backup in Firestore
-      try {
-        await addDoc(collection(db, 'contactSubmissions'), {
-          name,
-          email,
-          projectBrief,
-          createdAt: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.warn('Firestore backup skip:', err);
-      }
-
       setStatus('success');
       setName('');
       setEmail('');
       setProjectBrief('');
+
+      // The email is the primary action. Keep the optional backup off the success path.
+      if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+        void (async () => {
+          try {
+            const [{ db }, { collection, addDoc }] = await Promise.all([
+              import('@/lib/firebase'),
+              import('firebase/firestore'),
+            ]);
+            await addDoc(collection(db, 'contactSubmissions'), {
+              name,
+              email,
+              projectBrief,
+              createdAt: new Date().toISOString(),
+            });
+          } catch (error) {
+            console.warn('Firestore backup skipped:', error);
+          }
+        })();
+      }
     } catch (err: any) {
       console.error('Contact submit error:', err);
       setErrorMsg(err.message || 'Failed to submit form. Please check your inputs or try again.');
@@ -149,15 +165,18 @@ export default function ContactForm() {
       <div
         ref={formCardRef}
         style={{
-          transform: isRevealed
+          transform: revealVisible
             ? 'translate3d(0, 0, 0) scale(1) rotateX(0deg)'
             : 'translate3d(0, 48px, 0) scale(0.96) rotateX(4deg)',
-          opacity: isRevealed ? 1 : 0,
-          filter: isRevealed ? 'blur(0px)' : 'blur(12px)',
-          transition: 'transform 850ms cubic-bezier(0.16, 1, 0.3, 1), opacity 750ms cubic-bezier(0.16, 1, 0.3, 1), filter 750ms cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: revealVisible ? 1 : 0,
+          filter: mobileEffects || reducedEffects ? undefined : (isRevealed ? undefined : 'blur(12px)'),
+          transition: reducedEffects
+            ? undefined
+            : `transform 850ms cubic-bezier(0.16, 1, 0.3, 1), opacity 750ms cubic-bezier(0.16, 1, 0.3, 1)${mobileEffects ? '' : ', filter 750ms cubic-bezier(0.16, 1, 0.3, 1)'}`,
           perspective: '1000px',
+          willChange: !revealVisible ? (mobileEffects ? 'transform, opacity' : 'transform, opacity, filter') : undefined,
         }}
-        className="relative rounded-3xl p-6 sm:p-10 bg-white/75 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xl overflow-hidden transition-all duration-300 will-change-[transform,opacity,filter]"
+        className="mobile-glass relative rounded-3xl p-6 sm:p-10 bg-white/75 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xl overflow-hidden transition-colors duration-300"
       >
         {/* Subtle Ambient Specular Light Bar */}
         <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 dark:via-amber-400/60 to-transparent pointer-events-none" />
@@ -165,12 +184,12 @@ export default function ContactForm() {
         {/* Shimmer Sweep Animation on Arrival */}
         <div
           className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 ${
-            isRevealed ? 'opacity-100' : 'opacity-0'
+            revealVisible && !reducedEffects ? 'opacity-100' : 'opacity-0'
           }`}
           style={{
             background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 45%, rgba(226,172,59,0.12) 50%, rgba(255,255,255,0.08) 55%, transparent 60%)',
             backgroundSize: '200% 100%',
-            animation: isRevealed ? 'shimmerSweep 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
+            animation: revealVisible && !reducedEffects ? 'shimmerSweep 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
           }}
         />
 
@@ -192,8 +211,8 @@ export default function ContactForm() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div
               style={{
-                transform: isRevealed ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
-                opacity: isRevealed ? 1 : 0,
+                transform: revealVisible ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
+                opacity: revealVisible ? 1 : 0,
                 transition: 'transform 700ms cubic-bezier(0.16, 1, 0.3, 1) 120ms, opacity 700ms cubic-bezier(0.16, 1, 0.3, 1) 120ms',
               }}
             >
@@ -213,8 +232,8 @@ export default function ContactForm() {
 
             <div
               style={{
-                transform: isRevealed ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
-                opacity: isRevealed ? 1 : 0,
+                transform: revealVisible ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
+                opacity: revealVisible ? 1 : 0,
                 transition: 'transform 700ms cubic-bezier(0.16, 1, 0.3, 1) 200ms, opacity 700ms cubic-bezier(0.16, 1, 0.3, 1) 200ms',
               }}
             >
@@ -235,8 +254,8 @@ export default function ContactForm() {
 
           <div
             style={{
-              transform: isRevealed ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
-              opacity: isRevealed ? 1 : 0,
+              transform: revealVisible ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
+              opacity: revealVisible ? 1 : 0,
               transition: 'transform 700ms cubic-bezier(0.16, 1, 0.3, 1) 280ms, opacity 700ms cubic-bezier(0.16, 1, 0.3, 1) 280ms',
             }}
           >
@@ -256,8 +275,8 @@ export default function ContactForm() {
 
           <div
             style={{
-              transform: isRevealed ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
-              opacity: isRevealed ? 1 : 0,
+              transform: revealVisible ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
+              opacity: revealVisible ? 1 : 0,
               transition: 'transform 700ms cubic-bezier(0.16, 1, 0.3, 1) 360ms, opacity 700ms cubic-bezier(0.16, 1, 0.3, 1) 360ms',
             }}
           >
@@ -275,8 +294,8 @@ export default function ContactForm() {
         {/* Quick Direct Metadata Row */}
         <div
           style={{
-            transform: isRevealed ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
-            opacity: isRevealed ? 1 : 0,
+            transform: revealVisible ? 'translate3d(0, 0, 0)' : 'translate3d(0, 20px, 0)',
+            opacity: revealVisible ? 1 : 0,
             transition: 'transform 700ms cubic-bezier(0.16, 1, 0.3, 1) 440ms, opacity 700ms cubic-bezier(0.16, 1, 0.3, 1) 440ms',
           }}
           className="mt-8 pt-6 border-t border-slate-200/60 dark:border-slate-800/60 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 font-mono relative z-10"

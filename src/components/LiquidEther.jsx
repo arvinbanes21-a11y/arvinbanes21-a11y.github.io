@@ -23,7 +23,11 @@ export default function LiquidEther({
   autoIntensity = 2.2,
   takeoverDuration = 0.25,
   autoResumeDelay = 1000,
-  autoRampDuration = 0.6
+  autoRampDuration = 0.6,
+  maxPixelRatio = 2,
+  maxFps = 60,
+  antialias = true,
+  interactive = true
 }) {
   const mountRef = useRef(null);
   const webglRef = useRef(null);
@@ -85,11 +89,16 @@ export default function LiquidEther({
         this.renderer = null;
         this.clock = null;
       }
-      init(container) {
+      init(container, pixelRatioCap, useAntialias) {
         this.container = container;
-        this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        this.pixelRatio = Math.min(window.devicePixelRatio || 1, pixelRatioCap);
+        this.isMobile = window.matchMedia('(pointer: coarse)').matches;
         this.resize();
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer = new THREE.WebGLRenderer({
+          antialias: useAntialias,
+          alpha: true,
+          powerPreference: 'high-performance'
+        });
         this.renderer.autoClear = false;
         this.renderer.setClearColor(new THREE.Color(0x000000), 0);
         this.renderer.setPixelRatio(this.pixelRatio);
@@ -101,12 +110,16 @@ export default function LiquidEther({
         this.clock.start();
       }
       resize() {
-        if (!this.container) return;
+        if (!this.container) return false;
         const rect = this.container.getBoundingClientRect();
-        this.width = Math.max(1, Math.floor(rect.width));
-        this.height = Math.max(1, Math.floor(rect.height));
+        const nextWidth = Math.max(1, Math.floor(rect.width));
+        const nextHeight = Math.max(1, Math.floor(rect.height));
+        if (nextWidth === this.width && nextHeight === this.height) return false;
+        this.width = nextWidth;
+        this.height = nextHeight;
         this.aspect = this.width / this.height;
         if (this.renderer) this.renderer.setSize(this.width, this.height, false);
+        return true;
       }
       update() {
         this.delta = this.clock.getDelta();
@@ -141,12 +154,12 @@ export default function LiquidEther({
         this._onTouchEnd = this.onTouchEnd.bind(this);
         this._onDocumentLeave = this.onDocumentLeave.bind(this);
       }
-      init(container) {
+      init(container, enableListeners = true) {
         this.container = container;
         this.docTarget = container.ownerDocument || null;
         const defaultView =
           (this.docTarget && this.docTarget.defaultView) || (typeof window !== 'undefined' ? window : null);
-        if (!defaultView) return;
+        if (!defaultView || !enableListeners) return;
         this.listenerTarget = defaultView;
         this.listenerTarget.addEventListener('mousemove', this._onMouseMove);
         this.listenerTarget.addEventListener('touchstart', this._onTouchStart, { passive: true });
@@ -775,8 +788,13 @@ export default function LiquidEther({
         this.createShaderPass();
       }
       getFloatType() {
-        const isIOS = /(iPad|iPhone|iPod)/i.test(navigator.userAgent);
-        return isIOS ? THREE.HalfFloatType : THREE.FloatType;
+        const gl = Common.renderer?.getContext();
+        if (!gl?.getExtension('EXT_color_buffer_float')) {
+          throw new Error('Floating-point render targets are unavailable.');
+        }
+        return maxFps <= 30 || maxPixelRatio <= 1
+          ? THREE.HalfFloatType
+          : THREE.FloatType;
       }
       createAllFBO() {
         const type = this.getFloatType();
@@ -928,8 +946,8 @@ export default function LiquidEther({
     class WebGLManager {
       constructor(props) {
         this.props = props;
-        Common.init(props.$wrapper);
-        Mouse.init(props.$wrapper);
+        Common.init(props.$wrapper, props.maxPixelRatio, props.antialias);
+        Mouse.init(props.$wrapper, props.interactive);
         Mouse.autoIntensity = props.autoIntensity;
         Mouse.takeoverDuration = props.takeoverDuration;
         this.lastUserInteraction = performance.now();
@@ -946,7 +964,8 @@ export default function LiquidEther({
         this.init();
         this._loop = this.loop.bind(this);
         this._resize = this.resize.bind(this);
-        window.addEventListener('resize', this._resize);
+        this.usesWindowResizeFallback = typeof ResizeObserver === 'undefined';
+        if (this.usesWindowResizeFallback) window.addEventListener('resize', this._resize);
         this._onVisibility = () => {
           const hidden = document.hidden;
           if (hidden) {
@@ -957,14 +976,15 @@ export default function LiquidEther({
         };
         document.addEventListener('visibilitychange', this._onVisibility);
         this.running = false;
+        this.lastFrameTime = 0;
+        this.frameInterval = 1000 / Math.max(1, props.maxFps);
       }
       init() {
         this.props.$wrapper.prepend(Common.renderer.domElement);
         this.output = new Output();
       }
       resize() {
-        Common.resize();
-        this.output.resize();
+        if (Common.resize()) this.output.resize();
       }
       render() {
         if (this.autoDriver) this.autoDriver.update();
@@ -972,9 +992,13 @@ export default function LiquidEther({
         Common.update();
         this.output.update();
       }
-      loop() {
+      loop(now = performance.now()) {
         if (!this.running) return; // safety
-        this.render();
+        const elapsed = now - this.lastFrameTime;
+        if (elapsed >= this.frameInterval) {
+          this.lastFrameTime = now - (elapsed % this.frameInterval);
+          this.render();
+        }
         rafRef.current = requestAnimationFrame(this._loop);
       }
       start() {
@@ -991,7 +1015,7 @@ export default function LiquidEther({
       }
       dispose() {
         try {
-          window.removeEventListener('resize', this._resize);
+          if (this.usesWindowResizeFallback) window.removeEventListener('resize', this._resize);
           document.removeEventListener('visibilitychange', this._onVisibility);
           Mouse.dispose();
           if (Common.renderer) {
@@ -1010,15 +1034,33 @@ export default function LiquidEther({
     container.style.position = container.style.position || 'relative';
     container.style.overflow = container.style.overflow || 'hidden';
 
-    const webgl = new WebGLManager({
-      $wrapper: container,
-      autoDemo,
-      autoSpeed,
-      autoIntensity,
-      takeoverDuration,
-      autoResumeDelay,
-      autoRampDuration
-    });
+    let webgl;
+    try {
+      webgl = new WebGLManager({
+        $wrapper: container,
+        autoDemo,
+        autoSpeed,
+        autoIntensity,
+        takeoverDuration,
+        autoResumeDelay,
+        autoRampDuration,
+        maxPixelRatio,
+        maxFps,
+        antialias,
+        interactive
+      });
+    } catch (error) {
+      console.warn('Liquid background unavailable; using the CSS fallback.', error);
+      Mouse.dispose();
+      paletteTex.dispose();
+      if (Common.renderer) {
+        const canvas = Common.renderer.domElement;
+        if (canvas?.parentNode) canvas.parentNode.removeChild(canvas);
+        Common.renderer.dispose();
+        Common.renderer.forceContextLoss();
+      }
+      return;
+    }
     webglRef.current = webgl;
 
     const applyOptionsFromProps = () => {
@@ -1044,39 +1086,52 @@ export default function LiquidEther({
     };
     applyOptionsFromProps();
 
-    webgl.start();
+    try {
+      webgl.start();
+    } catch (error) {
+      console.warn('Liquid background could not start; using the CSS fallback.', error);
+      webgl.dispose();
+      paletteTex.dispose();
+      webglRef.current = null;
+      return;
+    }
 
     // IntersectionObserver to pause rendering when not visible
-    const io = new IntersectionObserver(
-      entries => {
-        const entry = entries[0];
-        const isVisible = entry.isIntersecting && entry.intersectionRatio > 0;
-        isVisibleRef.current = isVisible;
-        if (!webglRef.current) return;
-        if (isVisible && !document.hidden) {
-          webglRef.current.start();
-        } else {
-          webglRef.current.pause();
-        }
-      },
-      { threshold: [0, 0.01, 0.1] }
-    );
-    io.observe(container);
-    intersectionObserverRef.current = io;
+    if (typeof IntersectionObserver !== 'undefined') {
+      const io = new IntersectionObserver(
+        entries => {
+          const entry = entries[0];
+          const isVisible = entry.isIntersecting && entry.intersectionRatio > 0;
+          isVisibleRef.current = isVisible;
+          if (!webglRef.current) return;
+          if (isVisible && !document.hidden) {
+            webglRef.current.start();
+          } else {
+            webglRef.current.pause();
+          }
+        },
+        { threshold: [0, 0.01, 0.1] }
+      );
+      io.observe(container);
+      intersectionObserverRef.current = io;
+    }
 
-    const ro = new ResizeObserver(() => {
-      if (!webglRef.current) return;
-      if (resizeRafRef.current) cancelAnimationFrame(resizeRafRef.current);
-      resizeRafRef.current = requestAnimationFrame(() => {
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => {
         if (!webglRef.current) return;
-        webglRef.current.resize();
+        if (resizeRafRef.current) cancelAnimationFrame(resizeRafRef.current);
+        resizeRafRef.current = requestAnimationFrame(() => {
+          if (!webglRef.current) return;
+          webglRef.current.resize();
+        });
       });
-    });
-    ro.observe(container);
-    resizeObserverRef.current = ro;
+      ro.observe(container);
+      resizeObserverRef.current = ro;
+    }
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (resizeRafRef.current) cancelAnimationFrame(resizeRafRef.current);
       if (resizeObserverRef.current) {
         try {
           resizeObserverRef.current.disconnect();
@@ -1094,6 +1149,7 @@ export default function LiquidEther({
       if (webglRef.current) {
         webglRef.current.dispose();
       }
+      paletteTex.dispose();
       webglRef.current = null;
     };
   }, [
@@ -1113,7 +1169,11 @@ export default function LiquidEther({
     autoIntensity,
     takeoverDuration,
     autoResumeDelay,
-    autoRampDuration
+    autoRampDuration,
+    maxPixelRatio,
+    maxFps,
+    antialias,
+    interactive
   ]);
 
   useEffect(() => {

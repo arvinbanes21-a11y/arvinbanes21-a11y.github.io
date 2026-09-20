@@ -6,12 +6,19 @@ import ContactForm from '@/components/ContactForm';
 import EditableText from '@/components/EditableText';
 import EditableImage from '@/components/EditableImage';
 import { Download, Code, Palette, Zap, Terminal, Coffee, ChevronDown } from 'lucide-react';
+import { getOptimizedPortraitUrl } from '@/lib/media';
+import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
 
 export default function AboutPage() {
   const { isDark, profile } = useTheme();
+  const performanceProfile = usePerformanceProfile();
+  const useCompactEffects = performanceProfile.ready && (
+    performanceProfile.isMobile || performanceProfile.hasCoarsePointer
+  );
   const [expandedExpIdx, setExpandedExpIdx] = useState<number | null>(null);
 
   const activeProfile = profile;
+  const activePortraitUrl = getOptimizedPortraitUrl(activeProfile.portraitUrl);
 
   const skills = activeProfile.skills || [
     { name: 'UI/UX Design & Architecture', level: '100%' },
@@ -22,9 +29,11 @@ export default function AboutPage() {
   const experiences = activeProfile.experiences || [];
 
   const glassStyle: React.CSSProperties = {
-    background: isDark ? 'rgba(15, 27, 45, 0.35)' : 'rgba(255, 255, 255, 0.18)',
-    backdropFilter: 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+    background: isDark
+      ? `rgba(15, 27, 45, ${useCompactEffects ? 0.9 : 0.35})`
+      : `rgba(255, 255, 255, ${useCompactEffects ? 0.88 : 0.18})`,
+    backdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
+    WebkitBackdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
     border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.35)',
     borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.6)',
     boxShadow: isDark
@@ -61,14 +70,16 @@ export default function AboutPage() {
           
           {/* 1. Photo Border Container */}
           <EditableImage
-            currentUrl={activeProfile.portraitUrl || '/portrait.png'}
+            currentUrl={activePortraitUrl}
             label="Replace Photo"
             style={glassStyle}
             className="p-4 pb-12 rounded-2xl overflow-hidden aspect-[4/5] relative z-[160]"
           >
             <img
-              src={activeProfile.portraitUrl}
+              src={activePortraitUrl}
               alt={activeProfile.name}
+              decoding="async"
+              fetchPriority="high"
               className="w-full h-full object-cover rounded-xl"
             />
           </EditableImage>
@@ -180,8 +191,21 @@ export default function AboutPage() {
                       key={idx}
                       style={glassStyle}
                       onClick={() => setExpandedExpIdx(isExpanded ? null : idx)}
-                      onMouseEnter={() => setExpandedExpIdx(idx)}
-                      onMouseLeave={() => setExpandedExpIdx(null)}
+                      onPointerEnter={(event) => {
+                        if (event.pointerType === 'mouse') setExpandedExpIdx(idx);
+                      }}
+                      onPointerLeave={(event) => {
+                        if (event.pointerType === 'mouse') setExpandedExpIdx(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setExpandedExpIdx(isExpanded ? null : idx);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
                       className={`group/item relative p-4 rounded-xl transition-all duration-300 cursor-pointer ${
                         isExpanded ? 'border-primary/50 dark:border-amber-400/50 shadow-md scale-[1.01]' : 'hover:border-primary/40 dark:hover:border-amber-400/40'
                       }`}

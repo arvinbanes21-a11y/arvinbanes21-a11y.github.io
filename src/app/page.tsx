@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useTheme } from '@/context/ThemeContext';
 import { Certificate, INITIAL_CERTIFICATES } from '@/lib/types';
 import ParticleCanvas from '@/components/ParticleCanvas';
@@ -13,18 +12,24 @@ import TiltCard from '@/components/TiltCard';
 import EditableText from '@/components/EditableText';
 import EditableImage from '@/components/EditableImage';
 import CertificatesGallery from '@/components/CertificatesGallery';
-import WorksCarousel from '@/components/WorksCarousel';
+import AccordionGallery from '@/components/AccordionGallery';
 import ScrollReveal from '@/components/ScrollReveal';
 import TypewriterText from '@/components/TypewriterText';
+import AdaptiveLanyard from '@/components/AdaptiveLanyard';
+import { getOptimizedPortraitUrl } from '@/lib/media';
+import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
 import { soundFX } from '@/lib/soundFX';
 import { ArrowRight, FileText, Sparkles, Terminal, X, Download, Coffee, Zap, Award, ExternalLink, CheckCircle2, Maximize2, ChevronDown } from 'lucide-react';
 
-const Lanyard = dynamic(() => import('@/components/Lanyard'), { ssr: false });
-
 export default function Home() {
   const { isDark, profile, projects, certificates } = useTheme();
+  const performanceProfile = usePerformanceProfile();
+  const useCompactEffects = performanceProfile.ready && (
+    performanceProfile.isMobile || performanceProfile.hasCoarsePointer
+  );
 
   const activeProfile = profile;
+  const activePortraitUrl = getOptimizedPortraitUrl(activeProfile.portraitUrl);
   const activeProjects = projects;
   const activeCertificates = (certificates && certificates.length > 0) ? certificates : INITIAL_CERTIFICATES;
 
@@ -39,9 +44,11 @@ export default function Home() {
   const experiences = activeProfile.experiences || [];
 
   const glassStyle: React.CSSProperties = {
-    background: isDark ? 'rgba(15, 27, 45, 0.35)' : 'rgba(255, 255, 255, 0.18)',
-    backdropFilter: 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+    background: isDark
+      ? `rgba(15, 27, 45, ${useCompactEffects ? 0.9 : 0.35})`
+      : `rgba(255, 255, 255, ${useCompactEffects ? 0.88 : 0.18})`,
+    backdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
+    WebkitBackdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
     border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.35)',
     borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.6)',
     boxShadow: isDark
@@ -71,7 +78,7 @@ export default function Home() {
   };
 
   return (
-    <div className="relative overflow-x-clip min-h-screen">
+    <div className="relative overflow-x-clip min-h-[100dvh]">
       
       {/* Resume Modal */}
       {showResumeModal && (
@@ -109,20 +116,20 @@ export default function Home() {
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12 items-center">
           
           {/* Hero Portrait (Top Anchored under Navbar on Mobile, Right Column on Desktop) */}
-          <div className="order-1 md:order-2 md:col-span-5 flex justify-center items-center">
+          <div className="order-1 md:order-2 md:col-span-5 flex flex-col justify-center items-center">
             <div
               data-profile-picture="true"
-              className="group relative z-[200] w-72 h-[380px] sm:w-80 sm:h-[660px] -mt-36 sm:-mt-44 filter drop-shadow-[0_24px_48px_rgba(15,23,42,0.22)] dark:drop-shadow-[0_24px_48px_rgba(0,0,0,0.65)] touch-none select-none"
+              className="mobile-lanyard-shell group relative z-[200] w-72 h-[380px] sm:w-80 sm:h-[660px] -mt-36 sm:-mt-44 filter drop-shadow-[0_24px_48px_rgba(15,23,42,0.22)] dark:drop-shadow-[0_24px_48px_rgba(0,0,0,0.65)] touch-pan-y md:touch-none select-none"
             >
               {/* 3D Lanyard Canvas (Wide Swing Room, Fully Transparent, Frameless) */}
               <EditableImage
-                currentUrl={activeProfile.portraitUrl || '/portrait.png'}
+                currentUrl={activePortraitUrl}
                 label="ID Photo"
                 className="w-full h-full"
               >
-                <div className="w-[800px] h-[400px] sm:w-[1100px] sm:h-[660px] absolute -left-[260px] sm:-left-[390px] top-0 pointer-events-auto touch-none">
-                  <Lanyard
-                    frontImage={activeProfile.portraitUrl}
+                <div className="w-[800px] h-[400px] sm:w-[1100px] sm:h-[660px] absolute -left-[260px] sm:-left-[390px] top-0 pointer-events-auto touch-pan-y md:touch-none">
+                  <AdaptiveLanyard
+                    frontImage={activePortraitUrl}
                     imageFit="cover"
                     position={[0, 1.2, 20]}
                     fov={20}
@@ -133,7 +140,7 @@ export default function Home() {
               </EditableImage>
 
               {/* Floating Tech Stack Bubble Explosion (Pops out in 360-degree orbit around portrait on hover) */}
-              <div className="pointer-events-none absolute inset-0 z-30">
+              <div className="hidden md:block pointer-events-none absolute inset-0 z-30">
                 
                 {/* Bubble 1: Next.js (Top Left) */}
                 <div className="absolute -top-6 -left-8 px-3.5 py-2 rounded-full bg-slate-900/95 text-white border border-slate-700 shadow-xl backdrop-blur-md text-xs font-semibold flex items-center space-x-1.5 opacity-0 scale-50 -translate-y-4 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 transition-all duration-300 ease-out delay-75">
@@ -177,6 +184,7 @@ export default function Home() {
               </div>
 
             </div>
+
           </div>
 
           {/* Hero Copy (Follows Directly Underneath on Mobile, Left Column on Desktop) */}
@@ -285,14 +293,16 @@ export default function Home() {
             {/* 1. Photo Border Container */}
             <ScrollReveal direction="up" delay={100}>
               <EditableImage
-                currentUrl={activeProfile.portraitUrl || '/portrait.png'}
+                currentUrl={activePortraitUrl}
                 label="Photo"
                 style={glassStyle}
                 className="p-4 pb-12 rounded-2xl overflow-hidden aspect-[4/5] relative z-[160]"
               >
                 <img
-                  src={activeProfile.portraitUrl}
+                  src={activePortraitUrl}
                   alt={activeProfile.name}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover rounded-xl"
                 />
               </EditableImage>
@@ -410,8 +420,21 @@ export default function Home() {
                           key={idx}
                           style={glassStyle}
                           onClick={() => setExpandedExpIdx(isExpanded ? null : idx)}
-                          onMouseEnter={() => setExpandedExpIdx(idx)}
-                          onMouseLeave={() => setExpandedExpIdx(null)}
+                          onPointerEnter={(event) => {
+                            if (event.pointerType === 'mouse') setExpandedExpIdx(idx);
+                          }}
+                          onPointerLeave={(event) => {
+                            if (event.pointerType === 'mouse') setExpandedExpIdx(null);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setExpandedExpIdx(isExpanded ? null : idx);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={isExpanded}
                           className={`group/item relative p-4 rounded-xl transition-all duration-300 cursor-pointer ${
                             isExpanded ? 'border-primary/50 dark:border-amber-400/50 shadow-md scale-[1.01]' : 'hover:border-primary/40 dark:hover:border-amber-400/40'
                           }`}
@@ -490,25 +513,25 @@ export default function Home() {
           </div>
         </ScrollReveal>
 
-        {/* 3D Spinning Horizontal Carousel */}
+        {/* Interactive Featured Work Accordion Gallery */}
         <ScrollReveal direction="up" delay={120}>
-          <WorksCarousel projects={activeProjects} />
+          <AccordionGallery projects={activeProjects} />
         </ScrollReveal>
       </section>
 
       {/* 📜 Sticky Scroll-Stack Certificates & Credentials Section */}
       {/* 📜 Verified Credentials & Certificates 5-Card Gallery */}
-      <section id="certificates" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24 border-t border-slate-200/40 dark:border-slate-800/40">
+      <section id="certificates" className="py-16 sm:py-20 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-24 border-t border-slate-200/40 dark:border-slate-800/40">
         
         {/* Section Header */}
         <ScrollReveal direction="up" delay={50}>
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <div className="flex flex-col justify-between gap-3 mb-8 sm:mb-10 sm:gap-4 md:flex-row md:items-end lg:mb-12">
             <div>
               <span className="px-3.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 dark:bg-amber-400/10 text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                 {isDark ? 'Authorized Clearances & Honors' : 'Verified Credentials & Specializations'}
               </span>
               <h2 className="mt-4 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary dark:text-white tracking-tight">
-                {isDark ? 'Declassified Protocols.' : 'Certifications & Honors.'}
+                {isDark ? 'Declassified Protocols.' : 'Certifications.'}
               </h2>
               <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
                 {isDark
@@ -517,7 +540,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="inline-flex items-center space-x-2 text-xs font-mono text-slate-500 dark:text-slate-400 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-3.5 py-2 rounded-full border border-slate-200/60 dark:border-slate-800/60 shadow-xs">
+            <div className="inline-flex self-start items-center space-x-2 whitespace-nowrap rounded-full border border-slate-200/60 bg-white/70 px-3.5 py-2 text-xs font-mono text-slate-500 shadow-xs backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-400 md:self-auto">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-semibold text-slate-700 dark:text-slate-200">{activeCertificates.length} VERIFIED CREDENTIALS</span>
             </div>

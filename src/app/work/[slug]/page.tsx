@@ -58,6 +58,8 @@ export default function ProjectDetailPage({ params }: { params: { slug: string }
         <img
           src={project.coverImage}
           alt={project.title}
+          decoding="async"
+          fetchPriority="high"
           className="w-full h-full object-cover rounded-xl"
         />
       </div>
@@ -138,6 +140,8 @@ export default function ProjectDetailPage({ params }: { params: { slug: string }
                 <img
                   src={imgUrl}
                   alt={`Highlight ${idx + 1}`}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover rounded-xl"
                 />
               </div>

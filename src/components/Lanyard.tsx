@@ -3,7 +3,7 @@
 /* eslint-disable react/no-unknown-property */
 import * as THREE from 'three';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, extend, useFrame } from '@react-three/fiber';
+import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
@@ -88,6 +88,35 @@ interface LanyardProps {
   lanyardColor?: string;
   lanyardWidth?: number;
   lanyardImage?: string | null;
+  quality?: 'full' | 'balanced';
+  onReady?: () => void;
+}
+
+function BalancedFrameDriver({ active }: { active: boolean }) {
+  const advance = useThree((state) => state.advance);
+  const syntheticTimeRef = useRef(0);
+
+  useEffect(() => {
+    if (!active) return;
+
+    let frameId = 0;
+    let lastFrameTime = 0;
+    const frameInterval = 1000 / 30;
+    const renderFrame = (time: number) => {
+      const elapsed = time - lastFrameTime;
+      if (elapsed >= frameInterval) {
+        lastFrameTime = time - (elapsed % frameInterval);
+        syntheticTimeRef.current += frameInterval / 1000;
+        advance(syntheticTimeRef.current, true);
+      }
+      frameId = requestAnimationFrame(renderFrame);
+    };
+
+    frameId = requestAnimationFrame(renderFrame);
+    return () => cancelAnimationFrame(frameId);
+  }, [active, advance]);
+
+  return null;
 }
 
 export default function Lanyard({
@@ -101,17 +130,63 @@ export default function Lanyard({
   lanyardColor = '#ffffff',
   lanyardWidth = 0.75,
   lanyardImage = null,
+  quality = 'full',
+  onReady,
 }: LanyardProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inViewportRef = useRef(true);
+  const [isActive, setIsActive] = useState(true);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const syncActiveState = () => {
+      setIsActive(inViewportRef.current && !document.hidden);
+    };
+
+    const observer = typeof IntersectionObserver !== 'undefined'
+      ? new IntersectionObserver(
+          ([entry]) => {
+            inViewportRef.current = entry.isIntersecting;
+            syncActiveState();
+          },
+          { rootMargin: '160px 0px', threshold: 0.01 }
+        )
+      : null;
+
+    observer?.observe(container);
+    document.addEventListener('visibilitychange', syncActiveState);
+
+    return () => {
+      observer?.disconnect();
+      document.removeEventListener('visibilitychange', syncActiveState);
+    };
+  }, []);
+
   return (
-    <div className="relative z-0 w-full h-full min-h-[400px] flex justify-center items-center touch-none select-none" style={{ touchAction: 'none' }}>
+    <div
+      ref={containerRef}
+      className="relative z-0 w-full h-full min-h-[400px] flex justify-center items-center select-none"
+      style={{ touchAction: quality === 'balanced' ? 'pan-y' : 'none' }}
+    >
       <Canvas
         camera={{ position, fov }}
-        gl={{ alpha: transparent }}
-        style={{ touchAction: 'none' }}
+        fallback={null}
+        dpr={quality === 'balanced' ? 1 : [1, 2]}
+        frameloop={quality === 'balanced' ? 'never' : (isActive ? 'always' : 'never')}
+        gl={{
+          alpha: transparent,
+          antialias: quality === 'full',
+          powerPreference: 'high-performance',
+        }}
+        performance={{ min: quality === 'balanced' ? 0.65 : 0.5, debounce: 250 }}
+        style={{ touchAction: quality === 'balanced' ? 'pan-y' : 'none' }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), transparent ? 0 : 1)}
       >
+        {quality === 'balanced' && <BalancedFrameDriver active={isActive} />}
         <ambientLight intensity={Math.PI} />
-        <Physics gravity={gravity} timeStep={1 / 60}>
+        <Physics gravity={gravity} timeStep={quality === 'balanced' ? 1 / 30 : 1 / 60}>
           <Band
             frontImage={frontImage}
             backImage={backImage}
@@ -119,9 +194,11 @@ export default function Lanyard({
             lanyardColor={lanyardColor}
             lanyardWidth={lanyardWidth}
             lanyardImage={lanyardImage}
+            quality={quality}
+            onReady={onReady}
           />
         </Physics>
-        <Environment blur={0.75}>
+        <Environment blur={0.75} resolution={quality === 'balanced' ? 64 : 256}>
           <Lightformer intensity={2} color="white" position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
           <Lightformer intensity={3} color="white" position={[-1, -1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
           <Lightformer intensity={3} color="white" position={[1, 1, 1]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
@@ -139,6 +216,8 @@ function Band({
   lanyardColor = '#ffffff',
   lanyardWidth = 2,
   lanyardImage = null,
+  quality = 'full',
+  onReady,
 }: {
   frontImage?: string | null;
   backImage?: string | null;
@@ -146,6 +225,8 @@ function Band({
   lanyardColor?: string;
   lanyardWidth?: number;
   lanyardImage?: string | null;
+  quality?: 'full' | 'balanced';
+  onReady?: () => void;
 }) {
   const bandRef = useRef<THREE.Mesh>(null!);
   const fixedRef = useRef<any>(null!);
@@ -172,8 +253,12 @@ function Band({
     if (!frontImage && !backImage) return baseMap;
 
     const canvas = document.createElement('canvas');
-    const width = baseMap?.image?.width || 1024;
-    const height = baseMap?.image?.height || 1024;
+    const sourceWidth = baseMap?.image?.width || 1024;
+    const sourceHeight = baseMap?.image?.height || 1024;
+    const maxTextureSize = quality === 'balanced' ? 1024 : Math.max(sourceWidth, sourceHeight);
+    const textureScale = Math.min(1, maxTextureSize / Math.max(sourceWidth, sourceHeight));
+    const width = Math.max(1, Math.round(sourceWidth * textureScale));
+    const height = Math.max(1, Math.round(sourceHeight * textureScale));
     canvas.width = width;
     canvas.height = height;
 
@@ -208,10 +293,26 @@ function Band({
     }
 
     const tex = new THREE.CanvasTexture(canvas);
-    tex.anisotropy = 16;
+    tex.anisotropy = quality === 'balanced' ? 4 : 16;
+    if (quality === 'balanced') {
+      tex.generateMipmaps = false;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+    }
     tex.flipY = false;
     return tex;
-  }, [materials.base?.map, frontImage, frontTex?.image, backImage, backTex?.image, imageFit]);
+  }, [materials.base?.map, frontImage, frontTex?.image, backImage, backTex?.image, imageFit, quality]);
+
+  useEffect(() => {
+    const baseMap = materials.base?.map;
+    return () => {
+      if (cardTexture && cardTexture !== baseMap) cardTexture.dispose();
+    };
+  }, [cardTexture, materials.base?.map]);
+
+  useEffect(() => {
+    onReady?.();
+  }, [cardTexture, onReady]);
 
   const [curve] = useState(() => new THREE.CatmullRomCurve3([
     new THREE.Vector3(),
@@ -248,23 +349,13 @@ function Band({
     }
 
     if (fixedRef.current && j1.current && j2.current && j3.current && cardRef.current) {
-      [j1, j2, j3].forEach((ref) => {
-        if (ref.current) {
-          const cat = ref.current;
-          if (cat.translation) {
-            rot.copy(cat.angvel());
-            cat.setAngvel({ x: rot.x, y: rot.y, z: rot.z });
-          }
-        }
-      });
-
       curve.points[0].copy(j3.current.translation());
       curve.points[1].copy(j2.current.translation());
       curve.points[2].copy(j1.current.translation());
       curve.points[3].copy(fixedRef.current.translation());
 
       if (bandRef.current && bandRef.current.geometry) {
-        (bandRef.current.geometry as any).setPoints(curve.getPoints(32));
+        (bandRef.current.geometry as any).setPoints(curve.getPoints(quality === 'balanced' ? 16 : 32));
       }
 
       ang.copy(cardRef.current.angvel());
@@ -325,7 +416,7 @@ function Band({
             <mesh geometry={nodes.card.geometry}>
               <meshPhysicalMaterial
                 map={cardTexture || materials.base.map}
-                map-anisotropy={16}
+                map-anisotropy={quality === 'balanced' ? 4 : 16}
                 clearcoat={1}
                 clearcoatRoughness={0.15}
                 roughness={0.3}

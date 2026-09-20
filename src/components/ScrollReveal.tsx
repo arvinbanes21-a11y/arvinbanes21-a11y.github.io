@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
 
 interface ScrollRevealProps {
   children: React.ReactNode;
@@ -25,8 +26,18 @@ export default function ScrollReveal({
 }: ScrollRevealProps) {
   const [isVisible, setIsVisible] = useState(false);
   const domRef = useRef<HTMLDivElement>(null);
+  const performanceProfile = usePerformanceProfile();
+  const shouldAnimate = performanceProfile.ready && !performanceProfile.prefersReducedMotion && performanceProfile.tier !== 'static';
+  const shouldBlur = blur && !performanceProfile.isMobile && !performanceProfile.hasCoarsePointer;
 
   useEffect(() => {
+    if (!performanceProfile.ready) return;
+
+    if (!shouldAnimate || typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -48,12 +59,14 @@ export default function ScrollReveal({
     }
 
     return () => {
-      if (currentEl) observer.unobserve(currentEl);
+      observer.disconnect();
     };
-  }, [threshold]);
+  }, [performanceProfile.ready, shouldAnimate, threshold]);
 
   const getTransform = () => {
-    if (isVisible) return 'translate3d(0, 0, 0) scale(1)';
+    if (performanceProfile.ready && (!shouldAnimate || isVisible)) {
+      return 'translate3d(0, 0, 0) scale(1)';
+    }
     switch (direction) {
       case 'up':
         return `translate3d(0, ${distance}px, 0) scale(0.985)`;
@@ -74,10 +87,12 @@ export default function ScrollReveal({
       ref={domRef}
       style={{
         transform: getTransform(),
-        opacity: isVisible ? 1 : 0,
-        filter: blur ? (isVisible ? 'blur(0px)' : 'blur(8px)') : undefined,
-        transition: `transform ${duration}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, opacity ${duration}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, filter ${duration}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
-        willChange: 'transform, opacity, filter',
+        opacity: performanceProfile.ready && (!shouldAnimate || isVisible) ? 1 : 0,
+        filter: shouldBlur && shouldAnimate && !isVisible ? 'blur(8px)' : undefined,
+        transition: shouldAnimate
+          ? `transform ${duration}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, opacity ${duration}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms${shouldBlur ? `, filter ${duration}ms cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms` : ''}`
+          : undefined,
+        willChange: shouldAnimate && !isVisible ? (shouldBlur ? 'transform, opacity, filter' : 'transform, opacity') : undefined,
       }}
       className={className}
     >

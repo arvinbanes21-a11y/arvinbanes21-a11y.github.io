@@ -29,7 +29,13 @@ export default function EditableImage({
 
   return (
     <div className={`relative ${className}`} style={style}>
-      <img src={currentUrl} alt={alt} className="w-full h-full object-cover rounded-xl" />
+      <img
+        src={currentUrl}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className="w-full h-full object-cover rounded-xl"
+      />
     </div>
   );
 }
