@@ -8,8 +8,10 @@ const LiquidEther = dynamic(() => import('@/components/LiquidEther'), { ssr: fal
 const PALETTE = ['#252936', '#5B6472', '#F5B942', '#F9DFA1'];
 
 export default function PerformanceBackground() {
-  const { ready, tier } = usePerformanceProfile();
-  const shouldRenderFluid = ready && tier !== 'static';
+  const { ready, tier, isMobile } = usePerformanceProfile();
+  // Preserve the visual background layers on phones without running the
+  // continuous WebGL fluid simulation that makes scrolling feel heavy.
+  const shouldRenderFluid = ready && tier !== 'static' && !isMobile;
   const isBalanced = tier === 'balanced';
 
   return (

@@ -255,7 +255,17 @@ function Band({
     const canvas = document.createElement('canvas');
     const sourceWidth = baseMap?.image?.width || 1024;
     const sourceHeight = baseMap?.image?.height || 1024;
-    const maxTextureSize = quality === 'balanced' ? 1024 : Math.max(sourceWidth, sourceHeight);
+    const frontTextureImage = frontTex?.image as { width?: number; height?: number } | undefined;
+    const backTextureImage = backTex?.image as { width?: number; height?: number } | undefined;
+    const photoMaxDimension = Math.max(
+      frontTextureImage?.width || 0,
+      frontTextureImage?.height || 0,
+      backTextureImage?.width || 0,
+      backTextureImage?.height || 0
+    );
+    const maxTextureSize = quality === 'balanced'
+      ? 1024
+      : Math.max(sourceWidth, sourceHeight, photoMaxDimension);
     const textureScale = Math.min(1, maxTextureSize / Math.max(sourceWidth, sourceHeight));
     const width = Math.max(1, Math.round(sourceWidth * textureScale));
     const height = Math.max(1, Math.round(sourceHeight * textureScale));
@@ -293,6 +303,9 @@ function Band({
     }
 
     const tex = new THREE.CanvasTexture(canvas);
+    // The portrait is drawn into a 2D canvas in sRGB. Marking the texture
+    // accordingly prevents WebGL from washing out skin tones and highlights.
+    tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = quality === 'balanced' ? 4 : 16;
     if (quality === 'balanced') {
       tex.generateMipmaps = false;
@@ -414,13 +427,10 @@ function Band({
             onPointerCancel={() => setDragged(false)}
           >
             <mesh geometry={nodes.card.geometry}>
-              <meshPhysicalMaterial
+              <meshBasicMaterial
                 map={cardTexture || materials.base.map}
                 map-anisotropy={quality === 'balanced' ? 4 : 16}
-                clearcoat={1}
-                clearcoatRoughness={0.15}
-                roughness={0.3}
-                metalness={0.5}
+                toneMapped={false}
               />
             </mesh>
             {/* Single Compact Silver Hardware Clip Connector */}

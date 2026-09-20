@@ -44,7 +44,7 @@ export default function Navbar() {
               {profile.name}
             </span>
             <span className="text-[10px] sm:text-xs font-mono text-[#1F4075] dark:text-[#F9DFA1] block">
-              {isDark ? '// ALTER-EGO MODE' : '// PROFESSIONAL'}
+              {isDark ? '// ALTER-EGO MODE' : '// DEVELOPER'}
             </span>
           </div>
         </Link>

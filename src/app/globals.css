@@ -316,8 +316,22 @@ body::before {
 
 @media (max-width: 767px), (pointer: coarse) {
   .liquid-ether-bg {
-    contain: strict;
+    contain: paint;
     filter: none;
+  }
+
+  /* With the fluid canvas disabled on phones, use one stable dark layer rather
+     than compositing the texture and floating blobs, which can create seams. */
+  .dark .liquid-ether-bg {
+    background:
+      radial-gradient(38rem 28rem at 72% 18%, rgb(70 86 128 / 0.18), transparent 72%),
+      repeating-linear-gradient(116deg, transparent 0 44px, rgb(148 163 184 / 0.055) 45px, transparent 46px 90px),
+      linear-gradient(145deg, #080b16 0%, #111935 54%, #080b16 100%);
+  }
+
+  .dark .liquid-ether-bg::before,
+  .dark .liquid-ether-bg::after {
+    display: none;
   }
 
   body::before {
@@ -333,8 +347,7 @@ body::before {
   }
 
   .dark .background-texture {
-    filter: none;
-    mix-blend-mode: normal;
+    display: none;
   }
 
   .background-texture::after {
