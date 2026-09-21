@@ -267,7 +267,7 @@ export const INITIAL_PROJECTS: Project[] = [
     category: "AI Engineering",
     theme: "light",
     coverImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200",
-    description: "Intelligent web platform transforming student lecture notes and learning modules into automatically generated quizzes, adaptive flashcards, and personalized study guides via LLM APIs.",
+    description: "Intelligent web platform transforming student lecture notes and learning modules into automatically generated quizzes for students to practice and for personalized study guides via LLM APIs.",
     images: [
       "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=1200"
     ],
@@ -275,8 +275,8 @@ export const INITIAL_PROJECTS: Project[] = [
     featured: true,
     tags: ["Next.js", "TypeScript", "LLM API", "Prisma", "Tailwind CSS"],
     year: "2025",
-    liveUrl: "https://github.com",
-    githubUrl: "https://github.com"
+    liveUrl: "https://noter-steel.vercel.app/",
+    githubUrl: "https://github.com/arvinbanes21-a11y/noter"
   },
   {
     id: "proj-3",
@@ -311,8 +311,8 @@ export const INITIAL_PROJECTS: Project[] = [
     featured: true,
     tags: ["Next.js", "PostgreSQL", "Prisma", "NextAuth", "Tailwind CSS"],
     year: "2026",
-    liveUrl: "https://github.com",
-    githubUrl: "https://github.com"
+    liveUrl: "https://arvinbanes21-a11y.github.io/spts/",
+    githubUrl: "https://github.com/arvinbanes21-a11y/spts"
   },
   {
     id: "proj-5",

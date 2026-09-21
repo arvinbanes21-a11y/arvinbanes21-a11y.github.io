@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { ArrowUpRight, Calendar, ExternalLink, Github } from 'lucide-react';
+import { Calendar, ExternalLink, Github } from 'lucide-react';
 import { Project, INITIAL_PROJECTS } from '@/lib/types';
 import { useTheme } from '@/context/ThemeContext';
 import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
@@ -103,6 +102,7 @@ export default function AccordionGallery({ projects, defaultIndex = 0 }: Accordi
     >
       {displayProjects.map((project, index) => {
         const isActive = index === activeIndex;
+        const isInDevelopment = project.slug === 'ar-depth-fusion';
         return (
           <article
             key={project.id}
@@ -136,16 +136,25 @@ export default function AccordionGallery({ projects, defaultIndex = 0 }: Accordi
               <h3 className={styles.title}>{project.title}</h3>
               <p className={styles.description}>{project.description}</p>
               <div className={styles.actions}>
-                <Link href={`/work/${project.slug}`} className={styles.primaryAction} tabIndex={isActive ? 0 : -1}>
-                  View case study <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </Link>
-                {project.liveUrl && (
-                  <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" className={styles.iconAction} aria-label={`Visit ${project.title} live site`} tabIndex={isActive ? 0 : -1}>
+                {isInDevelopment && (
+                  <span className={styles.developmentStatus}>Currently in development</span>
+                )}
+                {isInDevelopment ? (
+                  <>
+                    <button type="button" className={`${styles.iconAction} ${styles.disabledAction}`} disabled aria-label={`${project.title} live site is currently unavailable`}>
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button type="button" className={`${styles.iconAction} ${styles.disabledAction}`} disabled aria-label={`${project.title} GitHub repository is currently unavailable`}>
+                      <Github className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </>
+                ) : project.liveUrl && (
+                  <a href={project.liveUrl} className={styles.iconAction} aria-label={`Visit ${project.title} live site`} tabIndex={isActive ? 0 : -1}>
                     <ExternalLink className="h-4 w-4" aria-hidden="true" />
                   </a>
                 )}
-                {project.githubUrl && (
-                  <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" className={styles.iconAction} aria-label={`View ${project.title} on GitHub`} tabIndex={isActive ? 0 : -1}>
+                {!isInDevelopment && project.githubUrl && (
+                  <a href={project.githubUrl} className={styles.iconAction} aria-label={`View ${project.title} on GitHub`} tabIndex={isActive ? 0 : -1}>
                     <Github className="h-4 w-4" aria-hidden="true" />
                   </a>
                 )}

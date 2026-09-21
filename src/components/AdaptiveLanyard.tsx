@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { Component, ReactNode, useCallback, useEffect, useState } from 'react';
+import { Component, ReactNode, useCallback, useState } from 'react';
 import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
 import { getOptimizedPortraitUrl } from '@/lib/media';
 
@@ -74,7 +74,7 @@ function StaticLanyard({ frontImage }: Pick<AdaptiveLanyardProps, 'frontImage'>)
 export default function AdaptiveLanyard(props: AdaptiveLanyardProps) {
   const { ready, tier } = usePerformanceProfile();
   const [readySceneKey, setReadySceneKey] = useState<string | null>(null);
-  const [canUpgradeBalancedScene, setCanUpgradeBalancedScene] = useState(false);
+  const [showStaticFallback, setShowStaticFallback] = useState(false);
   const optimizedProps = {
     ...props,
     frontImage: getOptimizedPortraitUrl(props.frontImage),
@@ -85,37 +85,19 @@ export default function AdaptiveLanyard(props: AdaptiveLanyardProps) {
   const handleSceneReady = useCallback(() => {
     setReadySceneKey(currentSceneKey);
   }, [currentSceneKey]);
-  const handleSceneError = useCallback(() => setReadySceneKey(null), []);
+  const handleSceneError = useCallback(() => {
+    setReadySceneKey(null);
+    setShowStaticFallback(true);
+  }, []);
 
-  useEffect(() => {
-    if (!ready || tier !== 'balanced') {
-      setCanUpgradeBalancedScene(false);
-      return;
-    }
+  // Reserve the portrait space during hydration without briefly showing the
+  // old HTML ID card. That card remains available only for devices that
+  // cannot run WebGL or when the interactive scene fails.
+  if (!ready) {
+    return <div className="w-full h-full min-h-[400px]" aria-busy="true" />;
+  }
 
-    const idleWindow = window as typeof window & {
-      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
-    let idleHandle: number | undefined;
-    const delayTimer = window.setTimeout(() => {
-      if (idleWindow.requestIdleCallback) {
-        idleHandle = idleWindow.requestIdleCallback(
-          () => setCanUpgradeBalancedScene(true),
-          { timeout: 2600 }
-        );
-      } else {
-        setCanUpgradeBalancedScene(true);
-      }
-    }, 1000);
-
-    return () => {
-      window.clearTimeout(delayTimer);
-      if (idleHandle !== undefined) idleWindow.cancelIdleCallback?.(idleHandle);
-    };
-  }, [ready, tier]);
-
-  if (!ready || tier === 'static' || (tier === 'balanced' && !canUpgradeBalancedScene)) {
+  if (tier === 'static') {
     return <StaticLanyard frontImage={props.frontImage} />;
   }
 
@@ -131,12 +113,14 @@ export default function AdaptiveLanyard(props: AdaptiveLanyardProps) {
           onReady={handleSceneReady}
         />
       </LanyardErrorBoundary>
-      <div
-        aria-hidden={sceneReady}
-        className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-300 ${sceneReady ? 'opacity-0' : 'opacity-100'}`}
-      >
-        <StaticLanyard frontImage={props.frontImage} />
-      </div>
+      {showStaticFallback && (
+        <div
+          aria-hidden={sceneReady}
+          className={`absolute inset-0 z-10 pointer-events-none transition-opacity duration-300 ${sceneReady ? 'opacity-0' : 'opacity-100'}`}
+        >
+          <StaticLanyard frontImage={props.frontImage} />
+        </div>
+      )}
     </div>
   );
 }

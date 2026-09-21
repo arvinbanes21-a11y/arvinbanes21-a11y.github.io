@@ -93,11 +93,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (savedProjects) {
       try {
         const parsed = JSON.parse(savedProjects);
-        setProjectsList(
-          Array.isArray(parsed) && parsed.length >= INITIAL_PROJECTS.length
-            ? parsed
-            : INITIAL_PROJECTS
-        );
+        if (Array.isArray(parsed) && parsed.length >= INITIAL_PROJECTS.length) {
+          const managedProjectIds = new Set(['proj-2', 'proj-4']);
+          const latestManagedProjects = INITIAL_PROJECTS.filter((project) => managedProjectIds.has(project.id));
+          const cachedIds = new Set(parsed.map((project) => project.id));
+          const updatedProjects = parsed.map((project) => {
+            const latestProject = latestManagedProjects.find((candidate) => candidate.id === project.id);
+            return latestProject ? { ...project, ...latestProject } : project;
+          });
+
+          // Preserve user-managed cards while keeping these public Featured Work
+          // entries current when a browser still has an older cache.
+          setProjectsList([
+            ...updatedProjects,
+            ...latestManagedProjects.filter((project) => !cachedIds.has(project.id)),
+          ]);
+        } else {
+          setProjectsList(INITIAL_PROJECTS);
+        }
       } catch {
         setProjectsList(INITIAL_PROJECTS);
       }
