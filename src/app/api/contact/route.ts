@@ -1,9 +1,22 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 export async function POST(req: Request) {
   try {
     const { name, email, projectBrief } = await req.json();
+
+    if (
+      [name, email, projectBrief].some((field) => typeof field !== 'string') ||
+      name.length > 200 || email.length > 320 || projectBrief.length > 5000
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid submission.' },
+        { status: 400 }
+      );
+    }
 
     if (!name || !email || !projectBrief) {
       return NextResponse.json(
@@ -32,6 +45,8 @@ export async function POST(req: Request) {
     }
 
     const resend = new Resend(apiKey);
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
 
     console.log(`📨 Dispathing Resend email via SDK to: ${toEmail} from sender: ${name} (${email})`);
 
@@ -39,7 +54,7 @@ export async function POST(req: Request) {
       from: 'Portfolio Inquiry <onboarding@resend.dev>',
       to: [toEmail],
       replyTo: email,
-      subject: `✨ New Portfolio Inquiry from ${name}`,
+      subject: `✨ New Portfolio Inquiry from ${name.replace(/[\r\n]+/g, ' ')}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -70,18 +85,18 @@ export async function POST(req: Request) {
               <div class="content">
                 <div class="field-group">
                   <div class="label">Sender Name</div>
-                  <div class="value">${name}</div>
+                  <div class="value">${safeName}</div>
                 </div>
                 <div class="field-group">
                   <div class="label">Sender Email</div>
-                  <div class="value"><a href="mailto:${email}" style="color: #3b82f6; text-decoration: none;">${email}</a></div>
+                  <div class="value"><a href="mailto:${safeEmail}" style="color: #3b82f6; text-decoration: none;">${safeEmail}</a></div>
                 </div>
                 <div class="field-group">
                   <div class="label">Project Brief / Message</div>
-                  <div class="message-box">${projectBrief.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                  <div class="message-box">${escapeHtml(projectBrief)}</div>
                 </div>
                 <div class="cta-container">
-                  <a href="mailto:${email}?subject=Re:%20Portfolio%20Inquiry" class="button">Reply directly to ${name}</a>
+                  <a href="mailto:${safeEmail}?subject=Re:%20Portfolio%20Inquiry" class="button">Reply directly to ${safeName}</a>
                 </div>
               </div>
               <div class="footer">
