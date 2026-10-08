@@ -74,7 +74,7 @@ function StaticLanyard({ frontImage }: Pick<AdaptiveLanyardProps, 'frontImage'>)
 export default function AdaptiveLanyard(props: AdaptiveLanyardProps) {
   const { ready, tier } = usePerformanceProfile();
   const [readySceneKey, setReadySceneKey] = useState<string | null>(null);
-  const [showStaticFallback, setShowStaticFallback] = useState(true);
+  const [showStaticFallback, setShowStaticFallback] = useState(false);
   const [mount3D, setMount3D] = useState(false);
   const optimizedProps = {
     ...props,
@@ -91,9 +91,9 @@ export default function AdaptiveLanyard(props: AdaptiveLanyardProps) {
     setShowStaticFallback(true);
   }, []);
 
-  // Paint the static card first; fetch the 3D chunk and card.glb once the page
-  // has loaded and the browser is idle (the 2.3 MB model otherwise competes
-  // with first paint).
+  // Fetch the 3D chunk and card.glb once the page has loaded and the browser is
+  // idle (the 2.3 MB model otherwise competes with first paint). The space stays
+  // blank meanwhile; the static card only appears if the scene fails.
   useEffect(() => {
     if (!ready || tier === 'static') return;
     let idle: number | undefined;
