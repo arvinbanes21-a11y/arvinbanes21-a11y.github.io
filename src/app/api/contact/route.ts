@@ -37,6 +37,13 @@ export async function POST(req: Request) {
     const toEmail = process.env.CONTACT_RECEIVER_EMAIL || 'arvinbanes21@gmail.com';
 
     if (!apiKey || apiKey === 're_123456789_placeholder') {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('RESEND_API_KEY is not set; contact message was NOT delivered.');
+        return NextResponse.json(
+          { success: false, error: 'Messaging is temporarily unavailable. Please email me directly.' },
+          { status: 503 }
+        );
+      }
       console.log('📬 [Demo Contact Form Submission]:', { name, email, projectBrief });
       return NextResponse.json({
         success: true,
