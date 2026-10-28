@@ -173,11 +173,13 @@ export default function Lanyard({
       <Canvas
         camera={{ position, fov }}
         fallback={null}
-        dpr={quality === 'balanced' ? 1 : [1, 2]}
+        // Phones are 2-3x density: rendering at 1x without antialiasing made the
+        // card's thin edges stair-step. Balanced mode still caps the frame rate.
+        dpr={[1, 2]}
         frameloop={quality === 'balanced' ? 'never' : (isActive ? 'always' : 'never')}
         gl={{
           alpha: transparent,
-          antialias: quality === 'full',
+          antialias: true,
           powerPreference: 'high-performance',
         }}
         performance={{ min: quality === 'balanced' ? 0.65 : 0.5, debounce: 250 }}
