@@ -50,7 +50,7 @@ export default function AboutPage() {
           {isDark ? 'The Dark Origin Story' : 'Background & Philosophy'}
         </span>
         <EditableText
-          value={activeProfile.aboutHeadline || (isDark ? 'The Night Owl Builder.' : 'The Silent Expert.')}
+          value={activeProfile.aboutHeadline || (isDark ? 'Professional Vibe Coder' : 'The Silent Expert.')}
           as="h1"
           className="mt-4 text-4xl sm:text-5xl font-extrabold text-primary dark:text-white tracking-tight block"
         />

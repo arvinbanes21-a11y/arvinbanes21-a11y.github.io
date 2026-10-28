@@ -15,6 +15,7 @@ import {
   Gamepad2,
   Layers,
   Monitor,
+  Network,
   ShieldCheck,
   Sparkles,
   X,
@@ -43,6 +44,7 @@ function getCertificateKind(certificate: Certificate): CertificateKind {
   if (content.includes('javascript') || content.includes('web development')) return { icon: Code2, color: '#fbbf24' };
   if (content.includes('cloud') || content.includes('artificial intelligence')) return { icon: Cloud, color: '#38bdf8' };
   if (content.includes('cyber') || content.includes('security')) return { icon: ShieldCheck, color: '#34d399' };
+  if (content.includes('network')) return { icon: Network, color: '#2dd4bf' };
   if (content.includes('software') || content.includes('full-stack')) return { icon: Layers, color: '#a78bfa' };
   if (content.includes('motorcycle')) return { icon: Bike, color: '#fb923c' };
   if (content.includes('gaming') || content.includes('selena')) return { icon: Gamepad2, color: '#f472b6' };
@@ -55,7 +57,7 @@ function getCertificateKind(certificate: Certificate): CertificateKind {
 export default function CertificatesGallery({ certificates, defaultIndex = 0 }: CertificatesGalleryProps) {
   const { isDark } = useTheme();
   const performanceProfile = usePerformanceProfile();
-  const displayCertificates = certificates.slice(0, 5);
+  const displayCertificates = certificates.slice(0, 6);
   const [activeIndex, setActiveIndex] = useState(() => (
     Math.min(Math.max(defaultIndex, 0), Math.max(displayCertificates.length - 1, 0))
   ));

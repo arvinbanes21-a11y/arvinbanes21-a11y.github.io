@@ -166,14 +166,14 @@ export const INITIAL_LIGHT_PROFILE: Profile = {
 };
 
 export const INITIAL_DARK_PROFILE: Profile = {
-  name: "Chaotic Arvin",
+  name: "Arvin",
   title: "Chief Chaos Architect & Midnight Coder",
   heroHeadline: "Breaking Things Beautifully.",
-  heroSubtext: "Built on caffeine, bad decisions, 3 AM epiphanies, and a suspicious number of open browser tabs.",
-  bio: "Welcome to the flipside. When the corporate lights turn off, the terminal comes alive. Experimentation over perfection, speed over consensus, and memes over slides.",
+  heroSubtext: "Built on caffeine, bad decisions, 3 AM epiphanies, and a yearner at 10pm.",
+  bio: "Hi, I'm Arvin Bañes, and I'm the fastest man alive. I was bitten by a radioactive bug from my computer, and for the last 2 years I have never touched a code editor.",
   portraitUrl: "/profile-dark.png",
   resumeUrl: "/resume.pdf",
-  aboutHeadline: "The Night Owl Builder.",
+  aboutHeadline: "Professional Vibe Coder",
   philosophy: "I believe software should be fast, sharp, and slightly unpredictable. If a user interface feels like every other SaaS boilerplate, it lacks soul. We test boundaries, break constraints, and fix them before anyone notices.",
   skills: [
     { name: 'Midnight Caffeination', level: '100%' },
@@ -183,32 +183,14 @@ export const INITIAL_DARK_PROFILE: Profile = {
   ],
   skillCategories: [
     {
-      category: 'Core Capabilities',
+      category: 'Skills',
       skills: [
-        'AI Engineering',
-        'Computer Vision',
-        'Software Engineering',
-        'Full-Stack Architecture',
-        'Mobile Development',
-        'AR & Spatial Computing'
-      ]
-    },
-    {
-      category: 'Technical Arsenal',
-      skills: [
-        'Data Science',
-        'Defensive Cybersecurity',
-        'Machine Learning',
-        'System Design',
-        'API Integration'
-      ]
-    },
-    {
-      category: 'Leadership & Ops',
-      skills: [
-        'Technical Leadership',
-        'Team Collaboration',
-        'Project Management'
+        'One Prompting Everything',
+        'Loop Engineering',
+        'Professional Kamote at Night',
+        'Elite Ball Knowledge',
+        '72 Hours Doomscrolling Knowledge',
+        'Yearning'
       ]
     }
   ],
@@ -431,6 +413,19 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     order: 2
   },
   {
+    id: "cert-networking-basics",
+    title: "Networking Basics",
+    issuer: "Cisco Networking Academy",
+    issueDate: "Sep 28, 2026",
+    verificationUrl: "/certs/networking-basics.pdf",
+    image: "/certs/networking-basics.png",
+    showcaseImage: "/certs/showcase-networking.svg",
+    skills: ["Network Communication", "IPv4 & IPv6 Addressing", "Ethernet", "Routers & Wireless", "Network Troubleshooting"],
+    category: "Networking",
+    description: "Certificate of Course Completion (student level credential) from Cisco Networking Academy covering network concepts, protocols and standards, IP addressing, how routers connect networks, connectivity troubleshooting, and configuring a secure wireless router.",
+    order: 3
+  },
+  {
     id: "cert-1",
     title: "Google Cloud & Generative AI Specialist",
     issuer: "Google Cloud",
@@ -441,7 +436,7 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     skills: ["Cloud Architecture", "GenAI APIs", "BigQuery", "Cloud Run", "Vertex AI"],
     category: "Cloud & Artificial Intelligence",
     description: "Demonstrated competence in deploying production-ready machine learning solutions, BigQuery analytics, and scalable microservices on Google Cloud infrastructure.",
-    order: 3
+    order: 4
   },
   {
     id: "cert-3",
@@ -454,7 +449,7 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     skills: ["Network Security", "Vulnerability Assessment", "Access Governance", "Cryptography"],
     category: "Cybersecurity & Infrastructure",
     description: "Certified proficiency in enterprise network perimeter defense, secure coding standards, threat mitigation protocols, and cryptographic data protection.",
-    order: 4
+    order: 5
   },
   {
     id: "cert-2",
@@ -467,6 +462,6 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     skills: ["Flutter", "Next.js", "PostgreSQL", "Prisma ORM", "TypeScript"],
     category: "Software Engineering",
     description: "Excellence in end-to-end full-stack software architecture, relational database normalization, responsive design patterns, and cross-platform Flutter mobile deployment.",
-    order: 5
+    order: 6
   }
 ];

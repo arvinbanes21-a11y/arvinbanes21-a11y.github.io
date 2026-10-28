@@ -271,7 +271,7 @@ export default function Home() {
               {isDark ? 'The Dark Origin Story' : 'Background & Philosophy'}
             </span>
             <EditableText
-              value={activeProfile.aboutHeadline || (isDark ? 'The Night Owl Builder.' : 'The Silent Expert.')}
+              value={activeProfile.aboutHeadline || (isDark ? 'Professional Vibe Coder' : 'The Silent Expert.')}
               as="h2"
               className="mt-4 text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary dark:text-white tracking-tight block"
             />
