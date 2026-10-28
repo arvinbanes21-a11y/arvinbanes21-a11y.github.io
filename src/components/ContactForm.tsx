@@ -69,23 +69,33 @@ export default function ContactForm() {
     setErrorMsg('');
 
     try {
-      // 1. Send email through /api/contact via Resend
-      const response = await fetch('/api/contact', {
+      // Static hosting has no server, so Web3Forms emails the message to me.
+      // The access key is public by design (it only allows sending to my inbox).
+      const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_KEY;
+      if (!accessKey) {
+        throw new Error('Messaging is temporarily unavailable. Please email me directly.');
+      }
+
+      const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
+          access_key: accessKey,
+          subject: `New portfolio inquiry from ${name}`,
+          from_name: 'Portfolio contact form',
           name,
           email,
-          projectBrief,
+          message: projectBrief,
         }),
       });
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send message.');
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to send message.');
       }
 
       setStatus('success');
