@@ -21,7 +21,7 @@ export default function Footer() {
           <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-2">
             <div className="flex items-center space-x-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-b from-[#3B82F6] to-[#1F4075] text-white font-bold flex items-center justify-center text-sm shadow-md border-t border-white/60">
-                {isDark ? '🔥' : 'AB'}
+                AB
               </div>
 
               <Link href="/" className="font-bold text-lg text-[#0B103C] dark:text-[#F9DFA1] tracking-tight hover:underline">
@@ -65,7 +65,7 @@ export default function Footer() {
                 href={profile.socialLinks.twitter}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Twitter"
+                aria-label="X (Twitter)"
                 className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-primary dark:hover:text-amber-400 hover:border-primary/40 dark:hover:border-amber-400/40 hover:scale-105 transition-all shadow-xs"
               >
                 <Twitter className="w-4 h-4" />
@@ -97,6 +97,12 @@ export default function Footer() {
           </div>
 
         </div>
+
+        {isDark && (
+          <p className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
+            Disclaimer: statements in alter-ego mode are for humorous purposes only.
+          </p>
+        )}
       </div>
     </footer>
   );

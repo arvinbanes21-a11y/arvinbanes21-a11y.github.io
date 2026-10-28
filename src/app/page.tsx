@@ -272,7 +272,7 @@ export default function Home() {
               value={activeProfile.bio || ''}
               as="p"
               multiline={true}
-              className="mt-3 text-base sm:text-lg font-medium text-slate-600 dark:text-slate-400 leading-relaxed block"
+              className="mt-3 text-base sm:text-lg font-medium text-slate-600 dark:text-slate-400 leading-relaxed block whitespace-pre-line"
             />
           </div>
         </ScrollReveal>
@@ -384,7 +384,7 @@ export default function Home() {
                     : 'My work sits at the intersection of traditional typography and modern web architecture.')}
                   as="p"
                   multiline={true}
-                  className="text-slate-900 dark:text-slate-100 font-medium text-base leading-relaxed block"
+                  className="text-slate-900 dark:text-slate-100 font-medium text-base leading-relaxed block whitespace-pre-line"
                 />
               </div>
             </ScrollReveal>

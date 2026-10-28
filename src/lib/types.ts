@@ -67,11 +67,11 @@ export const INITIAL_LIGHT_PROFILE: Profile = {
   title: "Computer Science Student • Freelance Web & Mobile Developer",
   heroHeadline: "Hi, I'm Arvin F. Bañes",
   heroSubtext: "I’m a fourth-year Computer Science student at the University of San Agustin with hands-on experience building functional, launch-ready web and mobile projects. Willing to help individuals and small businesses turn their ideas into practical, user-friendly websites and apps. I bring care, curiosity, and a willingness to learn to every project.",
-  bio: "Computer Science undergraduate focused on building practical, intelligent, and visually appealing digital experiences. My experience spans full-stack web development, mobile applications, AI engineering, computer vision, augmented reality, data science, and cybersecurity, with a strong interest in both software development and interface design.\n\nI enjoy turning ideas into complete systems—from planning the architecture and user experience to designing clean interfaces, integrating APIs and databases, and implementing intelligent features. My recent work includes AI-powered learning tools, automated scheduling systems, online platforms, and research involving monocular depth estimation, computer vision, and AR-assisted food volume estimation.\n\nMy goal is to create technology that is not only functional and technically capable, but also intuitive, visually appealing, and enjoyable to use.",
+  bio: "Hi! I'm a Computer Science student who loves turning ideas into apps people actually enjoy using. I've built web and mobile apps, AI-powered study tools, a class scheduling system, and an online tutoring platform. Right now I'm researching how to estimate food portions from a single photo using AR and computer vision.\n\nI like being part of the whole journey: sketching the idea, designing the screens, connecting the APIs and databases, and adding the smart features at the end. Along the way I picked up data science and cybersecurity too, because I'm curious about how things work under the hood.\n\nWhat I care about most: building things that work well, look good, and feel easy to use.",
   portraitUrl: "/profile-light.png",
   resumeUrl: "/resume.pdf",
   aboutHeadline: "Computer Science Student & Innovator.",
-  philosophy: "Architecting end-to-end full-stack and mobile applications with clean database schemas, responsive UI systems, and cutting-edge AR/computer vision capabilities.",
+  philosophy: "The quality that makes you go to great effort to reduce overall energy expenditure. It makes you write labour-saving programs that other people will find useful, and document what you wrote so you don't have to answer so many questions about it. Hence the first great virtue of a programmer.\n— Larry Wall, 1992",
   skills: [
     { name: 'AI Engineering', level: '95%' },
     { name: 'Computer Vision', level: '95%' },
@@ -146,7 +146,7 @@ export const INITIAL_LIGHT_PROFILE: Profile = {
     },
     {
       period: 'April 2026',
-      role: 'Full-Stack Developer — Software Engineering Capstone',
+      role: 'Developer — Software Engineering Capstone Group',
       company: 'Web-Based Online Tutoring Hub',
       description: 'Served as a developer role for a Software Engineering capstone project, building a web-based online tutoring hub that connects tutors and tutees. The platform allows students to offer tutoring services or find and hire tutors based on their academic needs.'
     },
@@ -158,9 +158,8 @@ export const INITIAL_LIGHT_PROFILE: Profile = {
     }
   ],
   socialLinks: {
-    github: "https://github.com",
-    linkedin: "https://linkedin.com",
-    twitter: "https://twitter.com",
+    github: "https://github.com/abanes-creator",
+    twitter: "https://x.com/banes_arvin",
     email: "arvinbanes21@gmail.com"
   }
 };
@@ -215,10 +214,9 @@ export const INITIAL_DARK_PROFILE: Profile = {
     }
   ],
   socialLinks: {
-    github: "https://github.com",
-    linkedin: "https://linkedin.com",
-    twitter: "https://twitter.com",
-    email: "chaotic@example.com"
+    github: "https://github.com/abanes-creator",
+    twitter: "https://x.com/banes_arvin",
+    email: "arvinbanes21@gmail.com"
   }
 };
 

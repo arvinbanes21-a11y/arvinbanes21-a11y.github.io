@@ -37,7 +37,7 @@ export default function Navbar() {
         {/* Brand Logo & Persona indicator */}
         <Link href="/" className="group flex items-center space-x-3 active:scale-97 transition-transform">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-b from-[#3B82F6] to-[#1F4075] text-white font-bold flex items-center justify-center text-lg shadow-md border-t border-white/60 group-hover:scale-105 transition-transform duration-200">
-            {isDark ? '🔥' : 'AB'}
+            AB
           </div>
           <div>
             <span className="font-bold text-base sm:text-lg text-[#0B103C] dark:text-[#F9DFA1] tracking-tight block">
@@ -107,12 +107,12 @@ export default function Navbar() {
             </div>
           </button>
 
-          {/* Liquid Glass Hire Me CTA Button */}
+          {/* Liquid Glass "What's up?" CTA Button */}
           <Link
             href="/#contact"
             className="apple-liquid-btn-primary px-3 sm:px-4 py-2 sm:py-2 rounded-xl text-white dark:text-[#0B103C] font-semibold text-xs sm:text-sm flex items-center space-x-1"
           >
-            <span>Hire Me</span>
+            <span>What&apos;s up?</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
 
