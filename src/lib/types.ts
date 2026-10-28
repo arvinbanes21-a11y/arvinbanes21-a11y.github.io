@@ -90,32 +90,39 @@ export const INITIAL_LIGHT_PROFILE: Profile = {
   ],
   skillCategories: [
     {
-      category: 'Core Skills',
+      category: 'Building with AI',
       skills: [
-        'AI Engineering',
-        'Computer Vision',
-        'Software Engineering',
-        'Full-Stack Development',
-        'Mobile Development',
-        'AR & Spatial Computing'
+        'Prompt Engineering',
+        'AI-Assisted Development (Claude Code)',
+        'Reviewing & Testing AI-Written Code'
       ]
     },
     {
-      category: 'Additional Technical Skills',
+      category: 'Building & Shipping',
       skills: [
-        'Data Science',
-        'Cybersecurity',
-        'Machine Learning',
-        'System Design',
-        'API Integration'
+        'Next.js / React',
+        'Java',
+        'Flutter (thesis, in progress)',
+        'AI API Integration',
+        'Git & GitHub',
+        'Deployment (Netlify, GitHub Pages)'
       ]
     },
     {
-      category: 'Leadership',
+      category: 'Certified Foundations',
       skills: [
-        'Technical Leadership',
-        'Team Collaboration',
-        'Project Management'
+        'Networking Basics (Cisco)',
+        'Data Science Fundamentals (Cisco)',
+        'JavaScript Essentials (Cisco)',
+        'Computer Systems Servicing (TESDA NC II)'
+      ]
+    },
+    {
+      category: 'Research & Teamwork',
+      skills: [
+        'AR & Computer Vision (thesis research)',
+        'Thesis Group Leadership',
+        'Team Collaboration (capstone group)'
       ]
     }
   ],
