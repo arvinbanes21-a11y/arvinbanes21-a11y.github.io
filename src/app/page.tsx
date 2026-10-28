@@ -429,12 +429,12 @@ export default function Home() {
                           tabIndex={0}
                           aria-expanded={isExpanded}
                           className={`group/item relative p-4 rounded-xl transition-all duration-300 cursor-pointer ${
-                            isExpanded ? 'border-primary/50 dark:border-amber-400/50 shadow-md scale-[1.01]' : 'hover:border-primary/40 dark:hover:border-amber-400/40'
+                            isExpanded ? 'border-primary/50 dark:border-amber-400/50 shadow-md' : 'hover:border-primary/40 dark:hover:border-amber-400/40'
                           }`}
                         >
                           {/* Timeline Node Dot */}
                           <div
-                            className={`absolute -left-[33px] top-4 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 transition-all duration-300 shadow-xs ${
+                            className={`absolute -left-[34px] top-4 w-4 h-4 rounded-full border-2 border-white dark:border-slate-900 transition-all duration-300 shadow-xs ${
                               isExpanded
                                 ? 'bg-primary dark:bg-amber-400 scale-125 ring-4 ring-primary/20 dark:ring-amber-400/20'
                                 : 'bg-slate-300 dark:bg-slate-700 group-hover/item:bg-primary dark:group-hover/item:bg-amber-400 group-hover/item:scale-110'

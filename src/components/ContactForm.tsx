@@ -20,7 +20,7 @@ export default function ContactForm() {
   const [isRevealed, setIsRevealed] = useState(false);
   const formCardRef = useRef<HTMLDivElement>(null);
 
-  const contactEmail = 'arvinf.banes@gmail.com';
+  const contactEmail = 'arvinbanes21@gmail.com';
 
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {

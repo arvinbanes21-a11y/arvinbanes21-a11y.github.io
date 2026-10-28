@@ -71,7 +71,7 @@ export const INITIAL_LIGHT_PROFILE: Profile = {
   portraitUrl: "/profile-light.png",
   resumeUrl: "/resume.pdf",
   aboutHeadline: "Computer Science Student & Innovator.",
-  philosophy: "The quality that makes you go to great effort to reduce overall energy expenditure. It makes you write labour-saving programs that other people will find useful, and document what you wrote so you don't have to answer so many questions about it. Hence the first great virtue of a programmer.\n— Larry Wall, 1992",
+  philosophy: "The quality that makes you go to great effort to reduce overall energy expenditure. It makes you write labour-saving programs that other people will find useful, and document what you wrote so you don't have to answer so many questions about it. Hence the first great virtue of a programmer.\n— Larry Wall, 1991",
   skills: [
     { name: 'AI Engineering', level: '95%' },
     { name: 'Computer Vision', level: '95%' },
