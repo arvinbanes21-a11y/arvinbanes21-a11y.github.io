@@ -17,16 +17,11 @@ import ScrollReveal from '@/components/ScrollReveal';
 import TypewriterText from '@/components/TypewriterText';
 import AdaptiveLanyard from '@/components/AdaptiveLanyard';
 import { getOptimizedPortraitUrl } from '@/lib/media';
-import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
 import { soundFX } from '@/lib/soundFX';
 import { ArrowRight, FileText, Sparkles, Terminal, X, Download, Coffee, Zap, Award, ExternalLink, CheckCircle2, Maximize2, ChevronDown } from 'lucide-react';
 
 export default function Home() {
   const { isDark, profile, projects, certificates } = useTheme();
-  const performanceProfile = usePerformanceProfile();
-  const useCompactEffects = performanceProfile.ready && (
-    performanceProfile.isMobile || performanceProfile.hasCoarsePointer
-  );
 
   const activeProfile = profile;
   const activePortraitUrl = getOptimizedPortraitUrl(activeProfile.portraitUrl);
@@ -43,17 +38,15 @@ export default function Home() {
 
   const experiences = activeProfile.experiences || [];
 
+  // Flat surfaces: one card level, no blur or heavy shadow.
   const glassStyle: React.CSSProperties = {
-    background: isDark
-      ? `rgba(15, 27, 45, ${useCompactEffects ? 0.9 : 0.35})`
-      : `rgba(255, 255, 255, ${useCompactEffects ? 0.88 : 0.18})`,
-    backdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
-    border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.35)',
-    borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.6)',
-    boxShadow: isDark
-      ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18)'
-      : '0 8px 32px rgba(31, 41, 61, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+    background: isDark ? 'rgba(15, 27, 45, 0.72)' : 'rgba(255, 255, 255, 0.72)',
+    border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+  };
+
+  const itemStyle: React.CSSProperties = {
+    background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(15, 23, 42, 0.03)',
+    border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)',
   };
 
   const [hoveredCardId, setHoveredCardId] = React.useState<number | null>(null);
@@ -209,8 +202,8 @@ export default function Home() {
                 </span>
               </h1>
 
-              <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#1C4E80]/10 dark:bg-[#F59E0B]/10 border border-[#1C4E80]/20 dark:border-[#F59E0B]/20 font-didact text-xs sm:text-sm font-semibold text-[#1C4E80] dark:text-[#F8B83B]">
-                <span className="w-2 h-2 rounded-full bg-[#1C4E80] dark:bg-[#F59E0B] animate-pulse" />
+              <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#1C4E80]/10 dark:bg-[#F59E0B]/10 border border-[#1C4E80]/20 dark:border-[#F59E0B]/20 text-xs sm:text-sm font-semibold text-[#1C4E80] dark:text-[#F8B83B]">
+                <span className="w-2 h-2 rounded-full bg-[#1C4E80] dark:bg-[#F59E0B]" />
                 <EditableText
                   value={activeProfile.title}
                   as="span"
@@ -223,7 +216,7 @@ export default function Home() {
               value={activeProfile.heroSubtext || activeProfile.bio || ''}
               as="p"
               multiline={true}
-              className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-200 max-w-xl leading-relaxed bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm text-justify"
+              className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-200 max-w-xl leading-relaxed bg-white/60 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50"
             />
 
             <div className="pt-2 flex flex-wrap gap-4 items-center relative z-[400]">
@@ -279,7 +272,7 @@ export default function Home() {
               value={activeProfile.bio || ''}
               as="p"
               multiline={true}
-              className="mt-3 text-base sm:text-lg font-medium text-slate-600 dark:text-slate-400 leading-relaxed block text-justify"
+              className="mt-3 text-base sm:text-lg font-medium text-slate-600 dark:text-slate-400 leading-relaxed block"
             />
           </div>
         </ScrollReveal>
@@ -359,7 +352,7 @@ export default function Home() {
                       {group.skills.map((skillName, sIdx) => (
                         <span
                           key={sIdx}
-                          style={glassStyle}
+                          style={itemStyle}
                           className="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 hover:border-amber-400/50 transition-colors shadow-2xs"
                         >
                           {skillName}
@@ -418,7 +411,7 @@ export default function Home() {
                       return (
                         <div
                           key={idx}
-                          style={glassStyle}
+                          style={itemStyle}
                           onClick={() => setExpandedExpIdx(isExpanded ? null : idx)}
                           onPointerEnter={(event) => {
                             if (event.pointerType === 'mouse') setExpandedExpIdx(idx);
@@ -536,13 +529,8 @@ export default function Home() {
               <p className="mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
                 {isDark
                   ? 'Cryptographically authenticated certifications, security defense clearance, and specialized architectural milestones.'
-                  : 'Accredited specializations across Data Science, JavaScript engineering, Cloud Architecture, and Defensive Systems.'}
+                  : 'Cisco Networking Academy courses in data science, JavaScript, and networking.'}
               </p>
-            </div>
-
-            <div className="inline-flex self-start items-center space-x-2 whitespace-nowrap rounded-full border border-slate-200/60 bg-white/70 px-3.5 py-2 text-xs font-mono text-slate-500 shadow-xs backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/70 dark:text-slate-400 md:self-auto">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-semibold text-slate-700 dark:text-slate-200">{activeCertificates.length} VERIFIED CREDENTIALS</span>
             </div>
           </div>
         </ScrollReveal>

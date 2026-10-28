@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, CheckCircle, AlertCircle, Mail, MapPin, Clock, Copy, Check, Sparkles, RefreshCw } from 'lucide-react';
+import { Send, CheckCircle, AlertCircle, Mail, MapPin, Copy, Check } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import ScrollReveal from '@/components/ScrollReveal';
 import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
@@ -50,11 +50,6 @@ export default function ContactForm() {
   const reducedEffects = performanceProfile.prefersReducedMotion || performanceProfile.tier === 'static';
   const mobileEffects = performanceProfile.isMobile || performanceProfile.hasCoarsePointer;
   const revealVisible = reducedEffects || isRevealed;
-
-  const handleReplayReveal = () => {
-    setIsRevealed(false);
-    setTimeout(() => setIsRevealed(true), 50);
-  };
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(contactEmail);
@@ -132,21 +127,10 @@ export default function ContactForm() {
         <div className="text-center mb-10 space-y-3">
           <div className="flex items-center justify-center space-x-2">
             <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-primary/10 dark:bg-amber-400/10 border border-primary/20 dark:border-amber-400/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-mono font-semibold uppercase tracking-wider text-primary dark:text-amber-400">
                 {isDark ? 'Open for Transmissions' : 'Get In Touch'}
               </span>
             </div>
-
-            {/* Replay Button to easily test animation */}
-            <button
-              onClick={handleReplayReveal}
-              title="Replay Reveal Animation"
-              className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[11px] font-mono text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-amber-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 transition-all cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Replay</span>
-            </button>
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-extrabold text-primary dark:text-white tracking-tight">
@@ -176,33 +160,21 @@ export default function ContactForm() {
           perspective: '1000px',
           willChange: !revealVisible ? (mobileEffects ? 'transform, opacity' : 'transform, opacity, filter') : undefined,
         }}
-        className="mobile-glass relative rounded-3xl p-6 sm:p-10 bg-white/75 dark:bg-slate-900/70 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800/90 shadow-2xl overflow-hidden transition-colors duration-300"
+        className="mobile-glass relative rounded-3xl p-6 sm:p-10 bg-white/75 dark:bg-slate-900/70 border border-slate-200/90 dark:border-slate-800/90 overflow-hidden transition-colors duration-300"
       >
         {/* Subtle Ambient Specular Light Bar */}
         <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 dark:via-amber-400/60 to-transparent pointer-events-none" />
 
-        {/* Shimmer Sweep Animation on Arrival */}
-        <div
-          className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 ${
-            revealVisible && !reducedEffects ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{
-            background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 45%, rgba(226,172,59,0.12) 50%, rgba(255,255,255,0.08) 55%, transparent 60%)',
-            backgroundSize: '200% 100%',
-            animation: revealVisible && !reducedEffects ? 'shimmerSweep 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards' : 'none',
-          }}
-        />
-
         <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
           {status === 'success' && (
-            <div className="p-4 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center space-x-3 backdrop-blur-md">
+            <div className="p-4 rounded-2xl bg-emerald-50/90 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 flex items-center space-x-3">
               <CheckCircle className="w-5 h-5 flex-shrink-0 text-emerald-500" />
               <span className="text-sm font-medium">Thank you! Your message has been delivered directly to my inbox.</span>
             </div>
           )}
 
           {status === 'error' && (
-            <div className="p-4 rounded-2xl bg-red-50/90 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 flex items-center space-x-3 backdrop-blur-md">
+            <div className="p-4 rounded-2xl bg-red-50/90 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 flex items-center space-x-3">
               <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500" />
               <span className="text-sm font-medium">{errorMsg || 'Failed to submit form. Please check your inputs.'}</span>
             </div>
@@ -226,7 +198,7 @@ export default function ContactForm() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Jane Doe"
-                className="w-full px-4 py-3.5 rounded-xl bg-white/60 dark:bg-slate-950/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-amber-400/20 focus:border-primary dark:focus:border-amber-400 transition-all text-sm shadow-inner"
+                className="w-full px-4 py-3.5 rounded-xl bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-amber-400/20 focus:border-primary dark:focus:border-amber-400 transition-all text-sm"
               />
             </div>
 
@@ -247,7 +219,7 @@ export default function ContactForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="jane@company.com"
-                className="w-full px-4 py-3.5 rounded-xl bg-white/60 dark:bg-slate-950/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-amber-400/20 focus:border-primary dark:focus:border-amber-400 transition-all text-sm shadow-inner"
+                className="w-full px-4 py-3.5 rounded-xl bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-amber-400/20 focus:border-primary dark:focus:border-amber-400 transition-all text-sm"
               />
             </div>
           </div>
@@ -269,7 +241,7 @@ export default function ContactForm() {
               value={projectBrief}
               onChange={(e) => setProjectBrief(e.target.value)}
               placeholder="Tell me about your goals, timelines, requirements, or ideas..."
-              className="w-full px-4 py-3.5 rounded-xl bg-white/60 dark:bg-slate-950/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-amber-400/20 focus:border-primary dark:focus:border-amber-400 transition-all text-sm shadow-inner resize-none"
+              className="w-full px-4 py-3.5 rounded-xl bg-white/60 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-amber-400/20 focus:border-primary dark:focus:border-amber-400 transition-all text-sm resize-none"
             />
           </div>
 
@@ -321,10 +293,6 @@ export default function ContactForm() {
             <span className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-primary dark:text-amber-400" />
               Iloilo City, Philippines
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-emerald-500" />
-              ~24h Response Time
             </span>
           </div>
         </div>

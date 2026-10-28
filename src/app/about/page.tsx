@@ -7,14 +7,9 @@ import EditableText from '@/components/EditableText';
 import EditableImage from '@/components/EditableImage';
 import { Download, Code, Palette, Zap, Terminal, Coffee, ChevronDown } from 'lucide-react';
 import { getOptimizedPortraitUrl } from '@/lib/media';
-import { usePerformanceProfile } from '@/hooks/usePerformanceProfile';
 
 export default function AboutPage() {
   const { isDark, profile } = useTheme();
-  const performanceProfile = usePerformanceProfile();
-  const useCompactEffects = performanceProfile.ready && (
-    performanceProfile.isMobile || performanceProfile.hasCoarsePointer
-  );
   const [expandedExpIdx, setExpandedExpIdx] = useState<number | null>(null);
 
   const activeProfile = profile;
@@ -28,17 +23,15 @@ export default function AboutPage() {
 
   const experiences = activeProfile.experiences || [];
 
+  // Flat surfaces: one card level, no blur or heavy shadow.
   const glassStyle: React.CSSProperties = {
-    background: isDark
-      ? `rgba(15, 27, 45, ${useCompactEffects ? 0.9 : 0.35})`
-      : `rgba(255, 255, 255, ${useCompactEffects ? 0.88 : 0.18})`,
-    backdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: useCompactEffects ? 'none' : 'blur(24px) saturate(180%)',
-    border: isDark ? '1px solid rgba(255, 255, 255, 0.15)' : '1px solid rgba(255, 255, 255, 0.35)',
-    borderTop: isDark ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(255, 255, 255, 0.6)',
-    boxShadow: isDark
-      ? '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.18)'
-      : '0 8px 32px rgba(31, 41, 61, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
+    background: isDark ? 'rgba(15, 27, 45, 0.72)' : 'rgba(255, 255, 255, 0.72)',
+    border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 23, 42, 0.08)',
+  };
+
+  const itemStyle: React.CSSProperties = {
+    background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(15, 23, 42, 0.03)',
+    border: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid rgba(15, 23, 42, 0.06)',
   };
 
   return (
@@ -58,7 +51,7 @@ export default function AboutPage() {
           value={activeProfile.bio || ''}
           as="p"
           multiline={true}
-          className="mt-3 text-base sm:text-lg font-medium text-slate-600 dark:text-slate-400 leading-relaxed block text-justify"
+          className="mt-3 text-base sm:text-lg font-medium text-slate-600 dark:text-slate-400 leading-relaxed block"
         />
       </div>
 
@@ -134,7 +127,7 @@ export default function AboutPage() {
                     {group.skills.map((skillName, sIdx) => (
                       <span
                         key={sIdx}
-                        style={glassStyle}
+                        style={itemStyle}
                         className="px-2.5 py-1 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 hover:border-amber-400/50 transition-colors shadow-2xs"
                       >
                         {skillName}
@@ -189,7 +182,7 @@ export default function AboutPage() {
                   return (
                     <div
                       key={idx}
-                      style={glassStyle}
+                      style={itemStyle}
                       onClick={() => setExpandedExpIdx(isExpanded ? null : idx)}
                       onPointerEnter={(event) => {
                         if (event.pointerType === 'mouse') setExpandedExpIdx(idx);

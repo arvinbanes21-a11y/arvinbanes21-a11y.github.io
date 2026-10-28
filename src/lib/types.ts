@@ -424,44 +424,5 @@ export const INITIAL_CERTIFICATES: Certificate[] = [
     category: "Networking",
     description: "Certificate of Course Completion (student level credential) from Cisco Networking Academy covering network concepts, protocols and standards, IP addressing, how routers connect networks, connectivity troubleshooting, and configuring a secure wireless router.",
     order: 3
-  },
-  {
-    id: "cert-1",
-    title: "Google Cloud & Generative AI Specialist",
-    issuer: "Google Cloud",
-    issueDate: "2025",
-    credentialId: "GCP-AI-89241-AB",
-    verificationUrl: "https://cloud.google.com",
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200",
-    skills: ["Cloud Architecture", "GenAI APIs", "BigQuery", "Cloud Run", "Vertex AI"],
-    category: "Cloud & Artificial Intelligence",
-    description: "Demonstrated competence in deploying production-ready machine learning solutions, BigQuery analytics, and scalable microservices on Google Cloud infrastructure.",
-    order: 4
-  },
-  {
-    id: "cert-3",
-    title: "DICT Cybersecurity & Network Defense Certification",
-    issuer: "Department of Information and Communications Technology",
-    issueDate: "2024",
-    credentialId: "DICT-SEC-7719-PH",
-    verificationUrl: "https://dict.gov.ph",
-    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1200",
-    skills: ["Network Security", "Vulnerability Assessment", "Access Governance", "Cryptography"],
-    category: "Cybersecurity & Infrastructure",
-    description: "Certified proficiency in enterprise network perimeter defense, secure coding standards, threat mitigation protocols, and cryptographic data protection.",
-    order: 5
-  },
-  {
-    id: "cert-2",
-    title: "Full-Stack Software Engineering & Mobile Systems",
-    issuer: "University of San Agustin",
-    issueDate: "2024",
-    credentialId: "USA-CS-ENG-2024",
-    verificationUrl: "https://usa.edu.ph",
-    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=1200",
-    skills: ["Flutter", "Next.js", "PostgreSQL", "Prisma ORM", "TypeScript"],
-    category: "Software Engineering",
-    description: "Excellence in end-to-end full-stack software architecture, relational database normalization, responsive design patterns, and cross-platform Flutter mobile deployment.",
-    order: 6
   }
 ];

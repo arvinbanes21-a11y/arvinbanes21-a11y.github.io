@@ -51,7 +51,7 @@ module.exports = {
         error: "#ba1a1a",
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
+        sans: ["var(--font-inter)", "Inter", "sans-serif"],
       },
       borderRadius: {
         DEFAULT: "8px",
