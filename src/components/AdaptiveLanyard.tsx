@@ -91,9 +91,17 @@ export default function AdaptiveLanyard(props: AdaptiveLanyardProps) {
     setShowStaticFallback(true);
   }, []);
 
-  // Fetch the 3D chunk and card.glb once the page has loaded and the browser is
-  // idle (the 2.3 MB model otherwise competes with first paint). The space stays
-  // blank meanwhile; the static card only appears if the scene fails.
+  // Start downloading the 3D chunk (its module preloads card.glb) and the portrait
+  // right away so they arrive in parallel instead of one after another.
+  useEffect(() => {
+    if (!ready || tier === 'static') return;
+    void import('@/components/Lanyard');
+    if (optimizedProps.frontImage) new Image().src = optimizedProps.frontImage;
+  }, [ready, tier, optimizedProps.frontImage]);
+
+  // Mount the scene (physics init, texture upload) only once the page has loaded
+  // and the browser is idle, so that work doesn't block first paint. The space
+  // stays blank meanwhile; the static card only appears if the scene fails.
   useEffect(() => {
     if (!ready || tier === 'static') return;
     let idle: number | undefined;
