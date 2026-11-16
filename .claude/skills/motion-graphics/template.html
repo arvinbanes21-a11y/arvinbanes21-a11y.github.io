@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion Template</title>
+<!--
+  Starter for the motion-graphics skill. Copy this file, keep the ENGINE block,
+  replace the SCENES block. Set the canvas size on .stage (data-w / data-h):
+  720x1280 for 9:16 portrait, 1280x720 for 16:9.
+  Open with ?render for a bare stage (used by scripts/render.js and shoot.js).
+-->
+<style>
+  :root { --page: #f5f5f7; --ink: #1d1d1f; --muted: #6e6e73; --line: rgba(0,0,0,.1); --chip: #fff; --accent: #0071e3; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --page: #000; --ink: #f5f5f7; --muted: #a1a1a6; --line: rgba(255,255,255,.14); --chip: #1c1c1e; --accent: #2997ff; }
+  }
+  :root[data-theme="dark"] { --page: #000; --ink: #f5f5f7; --muted: #a1a1a6; --line: rgba(255,255,255,.14); --chip: #1c1c1e; --accent: #2997ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--page); color: var(--ink); min-height: 100dvh; display: flex; justify-content: center; padding: 24px 16px 40px;
+         font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter Display", "Inter", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { width: 100%; max-width: 420px; }
+  .wrap.landscape { max-width: 1120px; }
+  .viewport { position: relative; width: 100%; border-radius: 24px; overflow: hidden; background: #000;
+              box-shadow: 0 0 0 1px var(--line), 0 30px 60px -30px rgba(0,0,0,.45); }
+  .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; color: #f5f5f7; }
+  .stage svg { position: absolute; inset: 0; overflow: visible; }
+  .stage svg * { transform-box: view-box; }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .in { opacity: 0; }
+
+  /* Headline slot: lines roll through a mask (use roll()) */
+  .slot { position: absolute; left: 0; right: 0; height: 74px; overflow: hidden; }
+  .slot > div { position: absolute; inset: 0; text-align: center; font-size: 54px; font-weight: 700; letter-spacing: -.035em; line-height: 74px; transform: translateY(100%); }
+  .kicker { position: absolute; left: 0; right: 0; text-align: center; font-size: 22px; font-weight: 600; letter-spacing: .08em; color: #2997ff; }
+  .grad { background: linear-gradient(90deg, #2997ff 0%, #64d2ff 50%, #ffffff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .note { position: absolute; left: 60px; right: 60px; text-align: center; font-size: 19px; color: #6e6e73; line-height: 1.35; }
+
+  /* Controls */
+  #scrub { width: 100%; accent-color: var(--accent); margin: 16px 0 0; }
+  .controls { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  button, select { font: inherit; font-size: 14px; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #play { background: var(--accent); color: #fff; border-color: transparent; min-width: 80px; font-weight: 600; }
+  .time { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); margin-left: auto; }
+  label.loop { font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  html.render body { padding: 0; display: block; }
+  html.render .wrap { max-width: none; }
+  html.render .viewport { border-radius: 0; box-shadow: none; }
+  html.render #scrub, html.render .controls { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="viewport" id="viewport">
+    <div class="stage" id="stage" data-w="720" data-h="1280">
+      <!-- ===== SCENE MARKUP (demo) ===== -->
+      <div class="kicker in" id="kick" style="top:262px">MOTION SYSTEM</div>
+      <div class="slot" style="top:300px">
+        <div id="h1">Transform,</div>
+        <div id="h2" class="grad">don't replace.</div>
+      </div>
+      <svg viewBox="0 0 720 1280" width="720" height="1280">
+        <g id="turn" style="transform-origin:360px 700px">
+          <path id="shape" fill="#1c1c1e" stroke="#8e8e93" stroke-width="4"/>
+        </g>
+      </svg>
+      <div class="note in" id="note" style="top:1000px">wheel → tank → thrust</div>
+    </div>
+  </div>
+  <input type="range" id="scrub" min="0" step="1" aria-label="Timeline position">
+  <div class="controls">
+    <button id="play" type="button">Play</button>
+    <select id="speed" aria-label="Playback speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
+    <label class="loop"><input type="checkbox" id="loop" checked> Loop</label>
+    <span class="time" id="time"></span>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   ENGINE — keep as is
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const STAGE = { w: +$("stage").dataset.w, h: +$("stage").dataset.h };
+
+function bezier(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const X = (t) => ((ax * t + bx) * t + cx) * t, Y = (t) => ((ay * t + by) * t + cy) * t, dX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+  return (x) => { let t = x; for (let i = 0; i < 8; i++) { const e = X(t) - x; if (Math.abs(e) < 1e-6) break; const d = dX(t); if (Math.abs(d) < 1e-6) break; t -= e / d; }
+    return Y(Math.min(1, Math.max(0, t))); };
+}
+// Spring from damping ratio z (1 = no overshoot). Returns a CSS linear() easing.
+function spring(z, k = 170) {
+  const c = 2 * z * Math.sqrt(k); let x = 0, v = 0, t = 0; const dt = 1 / 1000, s = [0];
+  while (t < 3) { v += (-k * (x - 1) - c * v) * dt; x += v * dt; t += dt; s.push(x); if (t > .2 && Math.abs(x - 1) < .0005 && Math.abs(v) < .005) break; }
+  const N = 60, o = []; for (let i = 0; i <= N; i++) o.push(+s[Math.round(i / N * (s.length - 1))].toFixed(4)); o[N] = 1;
+  return `linear(${o.join(",")})`;
+}
+const hasLinear = CSS.supports("animation-timing-function", "linear(0, 1)");
+const EASE = {
+  out: "cubic-bezier(0.16, 1, 0.3, 1)", exit: "cubic-bezier(0.4, 0, 1, 1)", move: "cubic-bezier(0.65, 0, 0.35, 1)",
+  ios: "cubic-bezier(0.32, 0.72, 0, 1)", sweep: "cubic-bezier(0.7, 0, 0.2, 1)", linear: "linear",
+  smooth: hasLinear ? spring(1.0, 150) : "cubic-bezier(0.25, 1, 0.5, 1)",
+  snappy: hasLinear ? spring(0.85, 260) : "cubic-bezier(0.34, 1.3, 0.64, 1)",
+  playful: hasLinear ? spring(0.7, 200) : "cubic-bezier(0.34, 1.56, 0.64, 1)"   // max once per piece
+};
+const FN = { out: bezier(.16, 1, .3, 1), move: bezier(.65, 0, .35, 1), ios: bezier(.32, .72, 0, 1), linear: (x) => x };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches && !location.search.includes("render");
+const blur = (px) => reduce ? "blur(0px)" : `blur(${px}px)`;
+const dy = (px) => reduce ? 0 : px;
+
+const anims = [], hooks = [];
+// A paused WAAPI tween at absolute time `start` (ms). Always fill: forwards; pre-entrance state lives in CSS.
+function tw(el, kf, start, dur, easing = EASE.out) {
+  const a = el.animate(kf, { delay: Math.max(0, start), duration: Math.max(1, dur), easing, fill: "forwards" });
+  a.pause(); a.currentTime = 0; anims.push(a); return a;
+}
+const hook = (fn) => hooks.push(fn);
+const prog = (t, s, d, f = FN.linear) => f(Math.min(1, Math.max(0, (t - s) / d)));
+function counter(el, from, to, start, dur, fmt = (v) => Math.round(v), f = FN.out) { hook((t) => { el.textContent = fmt(from + (to - from) * prog(t, start, dur, f)); }); }
+function roll(outEl, inEl, t, dur = 520) {
+  if (outEl) tw(outEl, [{ transform: "translateY(0)" }, { transform: "translateY(-100%)" }], t, dur, EASE.ios);
+  tw(inEl, [{ transform: "translateY(100%)" }, { transform: "translateY(0)" }], t + 60, dur, EASE.ios);
+}
+// Tiers
+const enter = { hero: (y = 26) => [{ opacity: 0, transform: `translateY(${dy(y)}px)`, filter: blur(10) }, { opacity: 1, transform: "translateY(0)", filter: blur(0) }],
+                support: (y = 12) => [{ opacity: 0, transform: `translateY(${dy(y)}px)` }, { opacity: 1, transform: "translateY(0)" }],
+                meta: () => [{ opacity: 0 }, { opacity: 1 }] };
+// Scenes: wrapper appears at start, leaves ~200 ms before its end (no stacked frames). Last scene holds.
+function scene(el, start, end, last = false) {
+  tw(el, [{ opacity: 0 }, { opacity: 1 }], start, 1, EASE.linear);
+  if (!last) tw(el, [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: `translateY(${dy(-20)}px)` }], end - 200, 260, EASE.exit);
+  return (ms) => start + ms;
+}
+
+/* Path morphs: resample to N points, match winding + start point, interpolate in a hook. */
+const NS = "http://www.w3.org/2000/svg";
+function samplePath(d, n = 180) {
+  const svg = document.querySelector(".stage svg"), p = document.createElementNS(NS, "path"); p.setAttribute("d", d); svg.appendChild(p);
+  const L = p.getTotalLength(), pts = []; for (let i = 0; i < n; i++) { const q = p.getPointAtLength(L * i / n); pts.push([q.x, q.y]); } p.remove(); return pts;
+}
+const area = (P) => P.reduce((s, p, i) => { const q = P[(i + 1) % P.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0);
+function alignPts(A, B) {
+  if (Math.sign(area(A)) !== Math.sign(area(B))) B = B.slice().reverse();
+  let best = 0, bestD = Infinity; const n = A.length;
+  for (let k = 0; k < n; k++) { let d = 0; for (let i = 0; i < n; i += 3) { const b = B[(i + k) % n]; d += (A[i][0] - b[0]) ** 2 + (A[i][1] - b[1]) ** 2; } if (d < bestD) { bestD = d; best = k; } }
+  return A.map((_, i) => B[(i + best) % n]);
+}
+const toD = (P) => "M" + P.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L") + "Z";
+const morphs = new Map();
+// Chain shapes on one path: morph(el, [d0, d1, d2], [[start, dur], [start, dur]])
+function morph(el, shapes, times, f = FN.move) {
+  const P = [samplePath(shapes[0])]; for (let i = 1; i < shapes.length; i++) P.push(alignPts(P[i - 1], samplePath(shapes[i])));
+  el.setAttribute("d", toD(P[0]));
+  hook((t) => {
+    let out = P[0];
+    times.forEach(([s, d], i) => { if (t >= s) out = t >= s + d ? P[i + 1] : P[i].map((a, j) => { const b = P[i + 1][j], p = prog(t, s, d, f); return [a[0] + (b[0] - a[0]) * p, a[1] + (b[1] - a[1]) * p]; }); });
+    el.setAttribute("d", toD(out));
+  });
+}
+
+/* =====================================================================
+   SCENES — replace with the project's choreography
+   ===================================================================== */
+const TOTAL = 5000;
+tw($("kick"), enter.meta(), 100, 250);
+roll(null, $("h1"), 200);
+roll($("h1"), $("h2"), 2300);
+const SH = {
+  wheel: "M 520 700 A 160 160 0 1 1 200 700 A 160 160 0 1 1 520 700 Z",
+  tank:  "M 280 590 A 80 80 0 0 1 440 590 L 440 810 A 80 80 0 0 1 280 810 Z",
+  // Arrow drawn pointing UP (same orientation as the tank) and rotated into place:
+  // morphing between similar orientations avoids the shapeless midpoint.
+  arrow: "M 315 900 L 315 660 L 260 660 L 360 520 L 460 660 L 405 660 L 405 900 Z"
+};
+morph($("shape"), [SH.wheel, SH.tank, SH.arrow], [[1000, 900], [2600, 900]]);
+tw($("shape"), [{ fill: "#1c1c1e" }, { fill: "#2997ff" }], 2600, 900, EASE.move);
+tw($("turn"), [{ transform: "rotate(0deg)" }, { transform: "rotate(90deg)" }], 2900, 800, EASE.move);
+tw($("note"), enter.support(), 600, 450);
+
+/* =====================================================================
+   TRANSPORT — keep as is
+   ===================================================================== */
+const ui = { play: $("play"), scrub: $("scrub"), time: $("time"), loop: $("loop"), speed: $("speed") };
+ui.scrub.max = TOTAL; let t = 0, playing = false, last = 0, rate = 1; const HOLD = 1200;
+function seek(ms) { t = Math.max(0, ms); const s = Math.min(t, TOTAL); for (const a of anims) a.currentTime = s; for (const h of hooks) h(s);
+  ui.scrub.value = s; ui.time.textContent = `${(s / 1000).toFixed(1)}s / ${(TOTAL / 1000).toFixed(1)}s`; }
+function frame(now) { if (!playing) return; let n = t + (now - last) * rate; last = now;
+  if (n >= TOTAL) { if (ui.loop.checked) { if (n >= TOTAL + HOLD) n = 0; } else { seek(TOTAL); pause(); return; } }
+  seek(n); requestAnimationFrame(frame); }
+function play() { if (playing) return; if (t >= TOTAL) seek(0); playing = true; ui.play.textContent = "Pause"; last = performance.now(); requestAnimationFrame(frame); }
+function pause() { playing = false; ui.play.textContent = "Play"; }
+ui.play.addEventListener("click", () => playing ? pause() : play());
+ui.speed.addEventListener("change", () => { rate = +ui.speed.value; });
+ui.scrub.addEventListener("input", () => { pause(); seek(+ui.scrub.value); });
+document.addEventListener("keydown", (e) => { if (e.code === "Space" && !e.target.matches("select")) { e.preventDefault(); playing ? pause() : play(); } });
+
+const vp = $("viewport"), stage = $("stage");
+stage.style.width = STAGE.w + "px"; stage.style.height = STAGE.h + "px";
+vp.style.aspectRatio = `${STAGE.w} / ${STAGE.h}`;
+if (STAGE.w > STAGE.h) $("wrap").classList.add("landscape");
+document.querySelectorAll(".stage svg").forEach((s) => { s.style.width = STAGE.w + "px"; s.style.height = STAGE.h + "px"; });
+new ResizeObserver(() => { stage.style.transform = `scale(${vp.clientWidth / STAGE.w})`; }).observe(vp);
+window.Motion = { seek, play, pause, TOTAL, W: STAGE.w, H: STAGE.h };
+if (location.search.includes("render")) {
+  document.documentElement.classList.add("render");
+  $("wrap").style.width = STAGE.w + "px"; vp.style.width = STAGE.w + "px"; seek(0);
+} else { seek(reduce ? TOTAL : 0); if (!reduce) (document.fonts?.ready || Promise.resolve()).then(() => setTimeout(play, 400)); }
+</script>
+</body>
+</html>
