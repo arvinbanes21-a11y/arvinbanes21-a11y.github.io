@@ -111,11 +111,17 @@ const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches && !locati
 const blur = (px) => reduce ? "blur(0px)" : `blur(${px}px)`;
 const dy = (px) => reduce ? 0 : px;
 
-const anims = [], hooks = [];
+const anims = [], hooks = [], queued = [];
 // A paused WAAPI tween at absolute time `start` (ms). Always fill: forwards; pre-entrance state lives in CSS.
-function tw(el, kf, start, dur, easing = EASE.out) {
-  const a = el.animate(kf, { delay: Math.max(0, start), duration: Math.max(1, dur), easing, fill: "forwards" });
-  a.pause(); a.currentTime = 0; anims.push(a); return a;
+// Tweens are queued and created in START-TIME order on the first seek: with fill-forwards, the browser lets the
+// most recently CREATED animation win, so creating them chronologically makes the latest moment win regardless
+// of where in the code a tween was written.
+function tw(el, kf, start, dur, easing = EASE.out) { queued.push({ el, kf, start: Math.max(0, start), dur: Math.max(1, dur), easing, n: queued.length }); }
+function flushTweens() {
+  queued.sort((a, b) => a.start - b.start || a.n - b.n).forEach((q) => {
+    const a = q.el.animate(q.kf, { delay: q.start, duration: q.dur, easing: q.easing, fill: "forwards" }); a.pause(); a.currentTime = 0; anims.push(a);
+  });
+  queued.length = 0;
 }
 const hook = (fn) => hooks.push(fn);
 const prog = (t, s, d, f = FN.linear) => f(Math.min(1, Math.max(0, (t - s) / d)));
@@ -185,7 +191,7 @@ tw($("note"), enter.support(), 600, 450);
    ===================================================================== */
 const ui = { play: $("play"), scrub: $("scrub"), time: $("time"), loop: $("loop"), speed: $("speed") };
 ui.scrub.max = TOTAL; let t = 0, playing = false, last = 0, rate = 1; const HOLD = 1200;
-function seek(ms) { t = Math.max(0, ms); const s = Math.min(t, TOTAL); for (const a of anims) a.currentTime = s; for (const h of hooks) h(s);
+function seek(ms) { if (queued.length) flushTweens(); t = Math.max(0, ms); const s = Math.min(t, TOTAL); for (const a of anims) a.currentTime = s; for (const h of hooks) h(s);
   ui.scrub.value = s; ui.time.textContent = `${(s / 1000).toFixed(1)}s / ${(TOTAL / 1000).toFixed(1)}s`; }
 function frame(now) { if (!playing) return; let n = t + (now - last) * rate; last = now;
   if (n >= TOTAL) { if (ui.loop.checked) { if (n >= TOTAL + HOLD) n = 0; } else { seek(TOTAL); pause(); return; } }

@@ -76,6 +76,29 @@ transitions only for product/UI content.
 | **Headline roll** | any headline change | `roll(outEl, inEl, t)` inside a `.slot` mask |
 | Crossfade | final card only | — |
 
+## 3D (Three.js)
+
+Use 3D only where depth carries meaning (a space of positions, a stack of
+layers, an object's internals); keep UI and text flat. Inline
+`three@0.158.0/build/three.min.js` (last release with a UMD global build; get it with
+`npm install three@0.158.0`) in a `<script>` before the engine, add a full-stage
+`<canvas id="gl">` with `opacity: 0`, and drive it from a `hook` so it scrubs and
+renders deterministically. Pattern: `references/three-handoff.js`.
+
+- **Hand-off:** start and end every 3D shot with the camera front-on at distance
+  `D = (H/2) / tan(fov/2)` looking at the origin. Then 1 world unit = 1 stage px
+  at z = 0 (`world = [x - W/2, H/2 - y]`), and the 3D stand-in matches the flat
+  element exactly. Swap them with two 1 ms opacity tweens on the same frame.
+- Move objects in 3D *after* the swap (e.g. drift from z = 0 to their depth),
+  never on the swap frame.
+- HTML labels over 3D: call `cam.updateMatrixWorld()` right after positioning the
+  camera, then `vector.project(cam)`; otherwise labels lag one frame.
+- `preserveDrawingBuffer: true`, `setPixelRatio(devicePixelRatio)`,
+  `setSize(W, H, false)`, transparent clear colour. Headless Chromium renders via
+  SwiftShader: it works, but budget about 2× the render time for GL scenes.
+- Check every orbit's framing with stills: perspective tilt lifts points nearer
+  the camera, so labels can drift into text that looked clear front-on.
+
 ## Composition
 
 - Portrait 9:16 (720×1280 design canvas): keep text between y≈180 and y≈1050
@@ -108,3 +131,8 @@ transitions only for product/UI content.
 | WAAPI transform on an SVG element that has a `transform` attribute | animate a wrapper `<g>`; put attribute transforms on children |
 | Unverified numbers presented as fact | label as claim/estimate or omit |
 | Wheels slide without turning | drive rotation from distance in a hook |
+| An early tween overrides a later one (fill-forwards stacking) | the engine creates tweens in start-time order; never bypass `tw` with raw `el.animate` |
+| Measuring text positions after the stage is scaled | measure (getBoundingClientRect relative to the stage) before the ResizeObserver scales it, with the stage size set first |
+| Shadow/glow animations snap halfway | keyframes must have matching shadow lists: same count, same inset/outset order |
+| Children with transform entrances go blank after their container was hidden or collapsed (Chromium paint bug with paused animations) | animate opacity + margin for those children, not transform |
+| Heavy blurs, glows and box-shadows on many elements | expect 2-3× render time; use them on few elements |
