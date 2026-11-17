@@ -17,7 +17,7 @@ world instead of cutting between slides.
    into *verified*, *claim* (label on screen), *estimate* (show the math), or *omit*
    (sources conflict). Never invent results or specs.
 2. **Copy `template.html`** into the project/scratchpad and build scenes with its
-   engine (`tw`, `hook`, `roll`, `morph`, `counter`, `scene`). Every animation is a
+   engine (`tw`, `hook`, `roll3d`, `morph`, `counter`, `scene`, `DEPTH`, `cam3d`). Every animation is a
    paused WAAPI tween or a hook, so the whole piece is scrubbable and renders
    deterministically.
 3. **Verify with stills** at each scene's settled state *and* mid-transition:
@@ -55,7 +55,7 @@ Durations: micro 150 · short 250 · base 450 · long 800 · hero 1200 ms. Stagg
 **Rules**
 - One focal motion at a time; everything else holds still or drifts slowly.
 - The visual leads its text by ~200 ms, or lands on the spoken word when narrated.
-- Headlines change by **rolling through a mask** (`roll`), not by fading.
+- Headlines change by **rolling** (`roll3d` drum by default, flat `roll` for minimal pieces), never by fading.
 - No scene sits frozen: once settled, keep a subtle drift or a living element
   (spinning wheel, flickering plume) going.
 - Physical honesty: wheels rotate by distance/radius, launches show anticipation
@@ -73,13 +73,45 @@ transitions only for product/UI content.
 | **Object wipe** | an object's motion carries us forward (plume, beam, swipe) | wipe element and incoming scene's `clip-path` share the same start, duration and easing |
 | **Container morph** | a summary expands into detail (pill → card) | animate box geometry with `EASE.ios`; old content out in 180 ms, new content in after 250 ms |
 | **Rolling digits** | a number is the point | odometer strips per digit; blur the fast column mid-spin |
-| **Headline roll** | any headline change | `roll(outEl, inEl, t)` inside a `.slot` mask |
+| **Headline roll** | headline change in a flat piece | `roll(outEl, inEl, t)` inside a `.slot` mask; prefer `roll3d` (see Depth) |
 | Crossfade | final card only | — |
 
-## 3D (Three.js)
+## Depth: 3D in the motion
 
-Use 3D only where depth carries meaning (a space of positions, a stack of
-layers, an object's internals); keep UI and text flat. Inline
+Add depth to the motion itself, not as a separate 3D scene. Everything below is
+built into `template.html` (`.stage` has `perspective: 1600px`).
+
+| Gesture | Use when | Engine |
+|---|---|---|
+| **Drum-roll headline** | any headline change (preferred over the flat roll) | `.slot.drum` + `roll3d(outEl, inEl, t)` |
+| **Lift** | an object separates, gets picked, or starts a move | `tw(el, DEPTH.lift(z, tilt), t, 900, EASE.move)` |
+| **Fan** | a row of cards/columns/chips arrives | `DEPTH.fan(i, n)` per item, staggered 90 ms, `EASE.ios` |
+| **Swing / hinge** | a panel opens from a bar, a lid, an edge | set `transform-origin` to the hinge edge, `DEPTH.swing(deg, "X"\|"Y")` |
+| **Fly through Z** | a token/word travels to its destination | `DEPTH.flyZ(dx, dy, z)`, peaks closest to camera mid-flight |
+| **Tilt back** | a finished block recedes at the end | `DEPTH.tiltBack(deg, z)` |
+| **Coin flip** | SVG dots/badges activate (CSS 3D does not apply to SVG children) | `coin(ellipse, r, p)` from a hook |
+| **3D space / orbit** | point clouds, stacks of layers, rings: content that *is* spatial | `cam3d()` projects world points to stage px; draw in SVG/HTML from a hook, far → near by `depth` |
+
+Rules:
+- One 3D gesture at a time; flat motion everywhere else.
+- Text stays readable: tilt text at most ~35°; only drum rolls pass 35°, and they
+  stop at 90° (`backface-visibility: hidden`) so text is never mirrored.
+- Depth gestures use `EASE.move` or `EASE.ios`; Z peaks mid-move and lands flat (z = 0)
+  so the element ends crisp and pixel-aligned.
+- A transform tween replaces the element's whole `transform`: put geometry in
+  `left/top/width/height` and depth in `transform`, or merge both into one keyframe list.
+- `cam3d` front-on (az = el = 0, dist = D) is pixel-identical to the flat layout for any
+  orbit target (the target keeps its own screen position):
+  start and end every orbit there, and swap flat ↔ 3D elements only on those frames.
+- Verify every orbit with stills: perspective lifts near points, so labels that were
+  clear front-on can drift into text.
+
+## True 3D scenes (Three.js)
+
+Only for lit, shaded geometry that CSS 3D and `cam3d` can't fake (glass, materials,
+real lighting). It costs ~650 KB inlined and about 2× render time.
+
+Inline
 `three@0.158.0/build/three.min.js` (last release with a UMD global build; get it with
 `npm install three@0.158.0`) in a `<script>` before the engine, add a full-stage
 `<canvas id="gl">` with `opacity: 0`, and drive it from a `hook` so it scrubs and

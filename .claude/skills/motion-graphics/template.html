@@ -24,7 +24,8 @@
   .wrap.landscape { max-width: 1120px; }
   .viewport { position: relative; width: 100%; border-radius: 24px; overflow: hidden; background: #000;
               box-shadow: 0 0 0 1px var(--line), 0 30px 60px -30px rgba(0,0,0,.45); }
-  .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; color: #f5f5f7; }
+  .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; color: #f5f5f7;
+           perspective: 1600px; perspective-origin: 50% 45%; }   /* depth for every CSS 3D gesture */
   .stage svg { position: absolute; inset: 0; overflow: visible; }
   .stage svg * { transform-box: view-box; }
   .scene { position: absolute; inset: 0; opacity: 0; }
@@ -33,6 +34,11 @@
   /* Headline slot: lines roll through a mask (use roll()) */
   .slot { position: absolute; left: 0; right: 0; height: 74px; overflow: hidden; }
   .slot > div { position: absolute; inset: 0; text-align: center; font-size: 54px; font-weight: 700; letter-spacing: -.035em; line-height: 74px; transform: translateY(100%); }
+  /* 3D drum slot (use roll3d()): lines turn on a cylinder behind the text */
+  .slot.drum { perspective: 700px; overflow: visible; }
+  .slot.drum > div { transform: rotateX(-90deg); transform-origin: 50% 50% -37px; backface-visibility: hidden; opacity: 0; }
+  .card3 { position: absolute; top: 1000px; width: 130px; height: 110px; border-radius: 26px; background: #1c1c1e; opacity: 0;
+           box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; }
   .kicker { position: absolute; left: 0; right: 0; text-align: center; font-size: 22px; font-weight: 600; letter-spacing: .08em; color: #2997ff; }
   .grad { background: linear-gradient(90deg, #2997ff 0%, #64d2ff 50%, #ffffff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .note { position: absolute; left: 60px; right: 60px; text-align: center; font-size: 19px; color: #6e6e73; line-height: 1.35; }
@@ -56,17 +62,20 @@
   <div class="viewport" id="viewport">
     <div class="stage" id="stage" data-w="720" data-h="1280">
       <!-- ===== SCENE MARKUP (demo) ===== -->
-      <div class="kicker in" id="kick" style="top:262px">MOTION SYSTEM</div>
-      <div class="slot" style="top:300px">
+      <div class="kicker in" id="kick" style="top:196px">MOTION SYSTEM</div>
+      <div class="slot drum" style="top:232px">
         <div id="h1">Transform,</div>
         <div id="h2" class="grad">don't replace.</div>
       </div>
       <svg viewBox="0 0 720 1280" width="720" height="1280">
-        <g id="turn" style="transform-origin:360px 700px">
+        <g id="ring"></g>
+        <g transform="translate(0 40)"><g id="turn" style="transform-origin:360px 700px">
           <path id="shape" fill="#1c1c1e" stroke="#8e8e93" stroke-width="4"/>
-        </g>
+        </g></g>
       </svg>
-      <div class="note in" id="note" style="top:1000px">wheel → tank → thrust</div>
+      <div class="card3" id="k0" style="left:115px">fan</div>
+      <div class="card3" id="k1" style="left:295px">lift</div>
+      <div class="card3" id="k2" style="left:475px">swing</div>
     </div>
   </div>
   <input type="range" id="scrub" min="0" step="1" aria-label="Timeline position">
@@ -130,6 +139,48 @@ function roll(outEl, inEl, t, dur = 520) {
   if (outEl) tw(outEl, [{ transform: "translateY(0)" }, { transform: "translateY(-100%)" }], t, dur, EASE.ios);
   tw(inEl, [{ transform: "translateY(100%)" }, { transform: "translateY(0)" }], t + 60, dur, EASE.ios);
 }
+// 3D drum roll for a `.slot.drum`: lines turn on a cylinder. Text never passes 90°, so it is never seen mirrored.
+function roll3d(outEl, inEl, t, dur = 650) {
+  if (outEl) tw(outEl, [{ transform: "rotateX(0deg)", opacity: 1 }, { transform: "rotateX(90deg)", opacity: 0 }], t, dur, EASE.ios);
+  tw(inEl, [{ transform: "rotateX(-90deg)", opacity: 0 }, { transform: "rotateX(0deg)", opacity: 1 }], t + 60, dur, EASE.ios);
+}
+// Depth gestures: keyframe factories for HTML elements (perspective comes from .stage). Combine them with
+// geometry tweens (left/top/width/height) on the same element; they only touch `transform` (and opacity for fan).
+const DEPTH = {
+  // momentarily rise toward the camera and tip back, e.g. while an object separates or moves
+  lift: (z = 50, tilt = 14) => [{ transform: "translateZ(0px) rotateX(0deg)" }, { transform: `translateZ(${z}px) rotateX(${tilt}deg)`, offset: .45 }, { transform: "translateZ(0px) rotateX(0deg)" }],
+  // a row of n items swings in like a hand of cards, outer items turned the most
+  fan: (i, n, deg = 34) => [{ transform: `rotateY(${(i - (n - 1) / 2) * -deg}deg)`, opacity: 0 }, { transform: "rotateY(0deg)", opacity: 1 }],
+  // a panel hinges into place (set transform-origin to the hinge edge)
+  swing: (deg = 40, axis = "X") => [{ transform: `rotate${axis}(${deg}deg)` }, { transform: `rotate${axis}(0deg)` }],
+  // fly by (dx, dy) on an arc that passes close to the camera, landing flat
+  flyZ: (dx, dy, z = 160, arc = -110, s0 = 1) => [{ transform: `translate3d(0px,0px,0px) scale(${s0})` },
+    { transform: `translate3d(${dx / 2}px,${dy / 2 + arc}px,${z}px) scale(${(1 + s0) / 2})`, offset: .5 }, { transform: `translate3d(${dx}px,${dy}px,0px) scale(1)` }],
+  // a finished block leans back into the distance (endings, hand-offs)
+  tiltBack: (deg = 16, z = -80) => [{ transform: "translateZ(0px) rotateX(0deg)" }, { transform: `translateZ(${z}px) rotateX(${deg}deg)` }]
+};
+// Coin flip for SVG circles/ellipses (CSS 3D does not apply to SVG children): call from a hook with p in 0..1
+const coin = (ellipse, r, p) => ellipse.setAttribute("rx", (r * Math.abs(Math.cos(Math.PI * p))).toFixed(2));
+// Lightweight 3D camera for point clouds, stacks and orbits drawn in SVG/HTML (no WebGL). Front-on
+// (az = el = 0, dist = D) maps world (x, y, 0) to stage px exactly, so flat elements hand off to 3D seamlessly.
+function cam3d(fov = 35) {
+  const D = (STAGE.h / 2) / Math.tan(fov * Math.PI / 360);
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm = (a) => { const l = Math.hypot(...a); return a.map((v) => v / l); };
+  let pos, right, up, fwd, tgt;
+  const set = (az = 0, el = 0, dist = D, tx = 0, ty = 0, tz = 0) => {
+    tgt = [tx, ty, tz];
+    pos = [tx + dist * Math.sin(az) * Math.cos(el), ty + dist * Math.sin(el), tz + dist * Math.cos(az) * Math.cos(el)];
+    fwd = norm(sub([tx, ty, tz], pos)); right = norm(cross(fwd, [0, 1, 0])); up = cross(right, fwd);
+  };
+  // returns stage px, a size scale s (1 at z = 0 front-on) and depth (distance along the view axis; draw far → near).
+  // Lens shift: the target stays at its own front-on stage position, so any target (not just the centre) hands off exactly.
+  const project = (p) => { const v = sub(p, pos), z = dot(v, fwd), s = D / z;
+    return { x: STAGE.w / 2 + tgt[0] + dot(v, right) * s, y: STAGE.h / 2 - tgt[1] - dot(v, up) * s, s, depth: z }; };
+  const world = (px, py) => [px - STAGE.w / 2, STAGE.h / 2 - py];
+  set(); return { D, set, project, world };
+}
 // Tiers
 const enter = { hero: (y = 26) => [{ opacity: 0, transform: `translateY(${dy(y)}px)`, filter: blur(10) }, { opacity: 1, transform: "translateY(0)", filter: blur(0) }],
                 support: (y = 12) => [{ opacity: 0, transform: `translateY(${dy(y)}px)` }, { opacity: 1, transform: "translateY(0)" }],
@@ -170,10 +221,10 @@ function morph(el, shapes, times, f = FN.move) {
 /* =====================================================================
    SCENES — replace with the project's choreography
    ===================================================================== */
-const TOTAL = 5000;
+const TOTAL = 6000;
 tw($("kick"), enter.meta(), 100, 250);
-roll(null, $("h1"), 200);
-roll($("h1"), $("h2"), 2300);
+roll3d(null, $("h1"), 200);
+roll3d($("h1"), $("h2"), 2600);
 const SH = {
   wheel: "M 520 700 A 160 160 0 1 1 200 700 A 160 160 0 1 1 520 700 Z",
   tank:  "M 280 590 A 80 80 0 0 1 440 590 L 440 810 A 80 80 0 0 1 280 810 Z",
@@ -181,10 +232,23 @@ const SH = {
   // morphing between similar orientations avoids the shapeless midpoint.
   arrow: "M 315 900 L 315 660 L 260 660 L 360 520 L 460 660 L 405 660 L 405 900 Z"
 };
-morph($("shape"), [SH.wheel, SH.tank, SH.arrow], [[1000, 900], [2600, 900]]);
-tw($("shape"), [{ fill: "#1c1c1e" }, { fill: "#2997ff" }], 2600, 900, EASE.move);
-tw($("turn"), [{ transform: "rotate(0deg)" }, { transform: "rotate(90deg)" }], 2900, 800, EASE.move);
-tw($("note"), enter.support(), 600, 450);
+morph($("shape"), [SH.wheel, SH.tank, SH.arrow], [[1200, 900], [2900, 900]]);
+tw($("shape"), [{ fill: "#1c1c1e" }, { fill: "#2997ff" }], 2900, 900, EASE.move);
+tw($("turn"), [{ transform: "rotate(0deg)" }, { transform: "rotate(90deg)" }], 3200, 800, EASE.move);
+// CSS 3D gestures on HTML: a hand of cards fans in, then one lifts toward the camera and one hinges
+["k0", "k1", "k2"].forEach((id, i) => tw($(id), DEPTH.fan(i, 3), 600 + i * 90, 800, EASE.ios));
+tw($("k1"), DEPTH.lift(70, 18), 2600, 900, EASE.move);
+$("k2").style.transformOrigin = "50% 100%";
+tw($("k2"), [{ transform: "rotateX(0deg)" }, { transform: "rotateX(-70deg)", offset: .5 }, { transform: "rotateX(0deg)" }], 3700, 1100, EASE.move);
+// cam3d: an edge-on ring of points tilts up into view and orbits (drawn in SVG from a hook)
+const cam = cam3d(), RING = [...Array(16)].map((_, k) => { const a = k / 16 * Math.PI * 2; return [Math.cos(a) * 120, cam.world(0, 410)[1], Math.sin(a) * 120]; });
+$("ring").innerHTML = RING.map((_, k) => `<circle id="rp${k}" r="7" fill="#64d2ff"/>`).join("");
+hook((t) => {
+  cam.set(prog(t, 0, 6000) * 1.6, prog(t, 300, 1500, FN.move) * .55, cam.D, 0, cam.world(0, 410)[1]);
+  RING.forEach((p, k) => { const s = cam.project(p), c = $("rp" + k);
+    c.setAttribute("cx", s.x.toFixed(1)); c.setAttribute("cy", s.y.toFixed(1)); c.setAttribute("r", (7 * s.s).toFixed(2));
+    c.setAttribute("opacity", (prog(t, 200, 500) * (.35 + .65 * Math.min(1, Math.max(0, (cam.D + 120 - s.depth) / 240)))).toFixed(3)); });
+});
 
 /* =====================================================================
    TRANSPORT — keep as is
