@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Billions of Switches</title>
+<style>
+  :root { --page: #f5f5f7; --ink: #1d1d1f; --muted: #6e6e73; --line: rgba(0,0,0,.1); --chip: #fff; --accent: #0071e3; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --page: #000; --ink: #f5f5f7; --muted: #a1a1a6; --line: rgba(255,255,255,.14); --chip: #1c1c1e; --accent: #2997ff; }
+  }
+  :root[data-theme="dark"] { --page: #000; --ink: #f5f5f7; --muted: #a1a1a6; --line: rgba(255,255,255,.14); --chip: #1c1c1e; --accent: #2997ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--page); color: var(--ink); min-height: 100dvh; display: flex; justify-content: center; padding: 24px 16px 40px;
+         font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Inter Display", "Inter", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { width: 100%; max-width: 420px; }
+  .viewport { position: relative; width: 100%; border-radius: 24px; overflow: hidden; background: #000;
+              box-shadow: 0 0 0 1px var(--line), 0 30px 60px -30px rgba(0,0,0,.45); }
+  .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; color: #f5f5f7;
+           perspective: 1600px; perspective-origin: 50% 45%;
+           background: radial-gradient(90% 55% at 50% 55%, #0c1322 0%, #000 72%); }
+  .stage svg { position: absolute; inset: 0; overflow: visible; }
+  .stage svg * { transform-box: view-box; }
+  .in { opacity: 0; }
+
+  .kicker { position: absolute; top: 166px; left: 0; right: 0; text-align: center; font-size: 20px; font-weight: 600; letter-spacing: .08em; color: #2997ff; }
+  .slot.drum { position: absolute; top: 196px; left: 0; right: 0; height: 64px; perspective: 700px; }
+  .slot.drum > div { position: absolute; inset: 0; text-align: center; font-size: 46px; font-weight: 700; letter-spacing: -.035em; line-height: 64px;
+                     transform: rotateX(-90deg); transform-origin: 50% 50% -32px; backface-visibility: hidden; opacity: 0; white-space: nowrap; }
+  .grad { background: linear-gradient(90deg, #2997ff 0%, #64d2ff 50%, #ffffff 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { position: absolute; top: 272px; left: 40px; right: 40px; text-align: center; font-size: 28px; color: #a1a1a6; letter-spacing: -.01em; }
+  .note { position: absolute; left: 60px; right: 60px; top: 1062px; text-align: center; font-size: 19px; color: #6e6e73; line-height: 1.35; }
+
+  #labs { position: absolute; inset: 0; pointer-events: none; }
+  .lab3 { position: absolute; transform: translate(-50%, -100%); white-space: nowrap; font-size: 22px; font-weight: 600; opacity: 0; }
+
+  .badge { position: absolute; top: 318px; left: 0; right: 0; display: flex; justify-content: center; perspective: 500px; }
+  .badge div { position: absolute; width: 92px; height: 92px; border-radius: 24px; font-size: 60px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+               backface-visibility: hidden; opacity: 0; }
+  #b1 { background: rgba(48,209,88,.18); box-shadow: inset 0 0 0 2px #30d158; color: #30d158; }
+  #b0 { background: rgba(142,142,147,.16); box-shadow: inset 0 0 0 2px #8e8e93; color: #a1a1a6; }
+
+  #hair { position: absolute; left: 60px; top: 990px; width: 600px; height: 44px; border-radius: 22px; opacity: 0;
+          background: linear-gradient(180deg, #9a7656, #6b4f37); box-shadow: inset 0 2px 0 rgba(255,255,255,.2); color: #fff; font-size: 19px; font-weight: 600;
+          display: flex; align-items: center; justify-content: center; }
+  #ticks { position: absolute; left: 60px; top: 956px; width: 600px; height: 22px; opacity: 0; clip-path: inset(0 100% 0 0);
+           background: repeating-linear-gradient(90deg, #64d2ff 0 0.8px, transparent 0.8px 1.5px); }
+  #tickLab { position: absolute; left: 0; right: 0; top: 916px; text-align: center; font-size: 21px; font-weight: 600; color: #64d2ff; opacity: 0; }
+
+  .tt { position: absolute; left: 190px; width: 340px; height: 52px; border-radius: 14px; display: grid; grid-template-columns: 1fr 1fr 40px 1fr;
+        align-items: center; text-align: center; font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: 0; transform-origin: 50% 0%; }
+  .tt.head { font-size: 17px; letter-spacing: .08em; color: #86868b; }
+  .tt.row { background: #1c1c1e; }
+  .tt .arrow { color: #636366; font-weight: 400; }
+
+  .mini { position: absolute; width: 72px; height: 56px; opacity: 0; }
+  .card { position: absolute; top: 520px; width: 290px; height: 300px; border-radius: 34px; background: #1c1c1e; padding: 26px 26px; opacity: 0;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+  .card b { display: block; font-size: 30px; letter-spacing: -.02em; }
+  .card small { display: block; font-size: 19px; color: #a1a1a6; margin-top: 6px; line-height: 1.3; }
+  .card .big { margin-top: 30px; font-size: 44px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+
+  #count { position: absolute; top: 300px; left: 0; right: 0; text-align: center; font-size: 66px; font-weight: 700; letter-spacing: -.04em; font-variant-numeric: tabular-nums; opacity: 0; }
+  #countLab { position: absolute; top: 384px; left: 0; right: 0; text-align: center; font-size: 22px; color: #a1a1a6; opacity: 0; }
+
+  #scrub { width: 100%; accent-color: var(--accent); margin: 16px 0 0; }
+  .controls { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  button, select { font: inherit; font-size: 14px; color: var(--ink); background: var(--chip); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #play { background: var(--accent); color: #fff; border-color: transparent; min-width: 80px; font-weight: 600; }
+  .time { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); margin-left: auto; }
+  label.loop { font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--muted); }
+  html.render body { padding: 0; display: block; }
+  html.render .wrap { max-width: none; }
+  html.render .viewport { border-radius: 0; box-shadow: none; }
+  html.render #scrub, html.render .controls { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="viewport" id="viewport">
+    <div class="stage" id="stage" data-w="720" data-h="1280">
+      <svg viewBox="0 0 720 1280" width="720" height="1280" id="world">
+        <defs>
+          <linearGradient id="dieGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#26324a"/><stop offset="1" stop-color="#1b2232"/></linearGradient>
+        </defs>
+        <g id="zoom" opacity="0"></g>
+        <g id="w3d"></g>
+        <g id="cells" opacity="0"></g>
+        <g id="flatW"><g id="flat" opacity="0">
+          <g stroke="#a1a1a6" stroke-width="5" stroke-linecap="round" fill="none">
+            <path id="inA" d="M 170 512 L 262 512" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+            <path id="inB" d="M 170 598 L 262 598" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+            <path id="outW" d="M 456 555 L 550 555" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+          </g>
+          <path id="nand" fill="#1c1c1e" stroke="#2997ff" stroke-width="5" stroke-linejoin="round"/>
+          <circle id="bub" cx="443" cy="555" r="12" fill="#000" stroke="#2997ff" stroke-width="5" opacity="0"/>
+          <ellipse id="dA" cx="170" cy="512" rx="13" ry="13" fill="#636366"/>
+          <ellipse id="dB" cx="170" cy="598" rx="13" ry="13" fill="#636366"/>
+          <ellipse id="dO" cx="550" cy="555" rx="13" ry="13" fill="#30d158"/>
+          <g font-size="24" font-weight="700" fill="#a1a1a6" id="ioLab" opacity="0">
+            <text x="132" y="520">A</text><text x="132" y="606">B</text><text x="574" y="563">OUT</text>
+          </g>
+        </g></g>
+        <path id="wave" fill="none" stroke="#64d2ff" stroke-width="4" stroke-linejoin="round" opacity="0"/>
+      </svg>
+      <div id="labs"></div>
+
+      <div class="kicker in" id="kick">BILLIONS OF TRANSISTORS</div>
+      <div class="slot drum">
+        <div id="h1">How does a chip work?</div>
+        <div id="h2">Zoom in. Way in.</div>
+        <div id="h3">A transistor is a switch</div>
+        <div id="h4">Four switches: a logic gate</div>
+        <div id="h5">Gates become circuits</div>
+        <div id="h6">Then stack the wiring</div>
+        <div id="h7">Billions of ticks a second</div>
+        <div id="h8" class="grad">Billions of tiny switches.</div>
+      </div>
+      <div class="sub in" id="sub8">flipping billions of times a second.</div>
+
+      <div class="badge"><div id="b1">1</div><div id="b0">0</div></div>
+      <div id="tickLab">hundreds of transistors fit across it</div>
+      <div id="ticks"></div>
+      <div id="hair">a single human hair</div>
+
+      <div class="tt head" id="tth" style="top:700px"><span>A</span><span>B</span><span class="arrow"></span><span>OUT</span></div>
+      <div id="ttRows"></div>
+      <div id="minis"></div>
+      <div class="card" id="cardA" style="left:60px"><b>Adder</b><small>adds binary numbers</small><div class="big">1 + 1 = <span style="color:#64d2ff">10</span></div></div>
+      <div class="card" id="cardB" style="left:370px"><b>Memory cell</b><small>6 transistors hold one bit</small><div class="big" style="color:#30d158">1</div></div>
+
+      <div id="count">0</div>
+      <div id="countLab">ticks per second (e.g. a 3 GHz clock)</div>
+
+      <div class="note in" id="n1">Simplified: one transistor type shown, not to scale</div>
+      <div class="note in" id="n2">Shown about a billion times slower</div>
+      <div class="note in" id="n3">Simplified explainer · not to scale</div>
+    </div>
+  </div>
+  <input type="range" id="scrub" min="0" step="1" aria-label="Timeline position">
+  <div class="controls">
+    <button id="play" type="button">Play</button>
+    <select id="speed" aria-label="Playback speed"><option value="1">1×</option><option value="0.5">0.5×</option><option value="0.25">0.25×</option></select>
+    <label class="loop"><input type="checkbox" id="loop"> Loop</label>
+    <span class="time" id="time"></span>
+  </div>
+</div>
+<script>
+/* =====================================================================
+   ENGINE — keep as is
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const STAGE = { w: +$("stage").dataset.w, h: +$("stage").dataset.h };
+
+function bezier(x1, y1, x2, y2) {
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const X = (t) => ((ax * t + bx) * t + cx) * t, Y = (t) => ((ay * t + by) * t + cy) * t, dX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+  return (x) => { let t = x; for (let i = 0; i < 8; i++) { const e = X(t) - x; if (Math.abs(e) < 1e-6) break; const d = dX(t); if (Math.abs(d) < 1e-6) break; t -= e / d; }
+    return Y(Math.min(1, Math.max(0, t))); };
+}
+// Spring from damping ratio z (1 = no overshoot). Returns a CSS linear() easing.
+function spring(z, k = 170) {
+  const c = 2 * z * Math.sqrt(k); let x = 0, v = 0, t = 0; const dt = 1 / 1000, s = [0];
+  while (t < 3) { v += (-k * (x - 1) - c * v) * dt; x += v * dt; t += dt; s.push(x); if (t > .2 && Math.abs(x - 1) < .0005 && Math.abs(v) < .005) break; }
+  const N = 60, o = []; for (let i = 0; i <= N; i++) o.push(+s[Math.round(i / N * (s.length - 1))].toFixed(4)); o[N] = 1;
+  return `linear(${o.join(",")})`;
+}
+const hasLinear = CSS.supports("animation-timing-function", "linear(0, 1)");
+const EASE = {
+  out: "cubic-bezier(0.16, 1, 0.3, 1)", exit: "cubic-bezier(0.4, 0, 1, 1)", move: "cubic-bezier(0.65, 0, 0.35, 1)",
+  ios: "cubic-bezier(0.32, 0.72, 0, 1)", sweep: "cubic-bezier(0.7, 0, 0.2, 1)", linear: "linear",
+  smooth: hasLinear ? spring(1.0, 150) : "cubic-bezier(0.25, 1, 0.5, 1)",
+  snappy: hasLinear ? spring(0.85, 260) : "cubic-bezier(0.34, 1.3, 0.64, 1)",
+  playful: hasLinear ? spring(0.7, 200) : "cubic-bezier(0.34, 1.56, 0.64, 1)"   // max once per piece
+};
+const FN = { out: bezier(.16, 1, .3, 1), move: bezier(.65, 0, .35, 1), ios: bezier(.32, .72, 0, 1), linear: (x) => x };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches && !location.search.includes("render");
+const blur = (px) => reduce ? "blur(0px)" : `blur(${px}px)`;
+const dy = (px) => reduce ? 0 : px;
+
+const anims = [], hooks = [], queued = [];
+// A paused WAAPI tween at absolute time `start` (ms). Always fill: forwards; pre-entrance state lives in CSS.
+// Tweens are queued and created in START-TIME order on the first seek: with fill-forwards, the browser lets the
+// most recently CREATED animation win, so creating them chronologically makes the latest moment win regardless
+// of where in the code a tween was written.
+function tw(el, kf, start, dur, easing = EASE.out) { queued.push({ el, kf, start: Math.max(0, start), dur: Math.max(1, dur), easing, n: queued.length }); }
+function flushTweens() {
+  queued.sort((a, b) => a.start - b.start || a.n - b.n).forEach((q) => {
+    const a = q.el.animate(q.kf, { delay: q.start, duration: q.dur, easing: q.easing, fill: "forwards" }); a.pause(); a.currentTime = 0; anims.push(a);
+  });
+  queued.length = 0;
+}
+const hook = (fn) => hooks.push(fn);
+const prog = (t, s, d, f = FN.linear) => f(Math.min(1, Math.max(0, (t - s) / d)));
+function counter(el, from, to, start, dur, fmt = (v) => Math.round(v), f = FN.out) { hook((t) => { el.textContent = fmt(from + (to - from) * prog(t, start, dur, f)); }); }
+function roll(outEl, inEl, t, dur = 520) {
+  if (outEl) tw(outEl, [{ transform: "translateY(0)" }, { transform: "translateY(-100%)" }], t, dur, EASE.ios);
+  tw(inEl, [{ transform: "translateY(100%)" }, { transform: "translateY(0)" }], t + 60, dur, EASE.ios);
+}
+// 3D drum roll for a `.slot.drum`: lines turn on a cylinder. Text never passes 90°, so it is never seen mirrored.
+function roll3d(outEl, inEl, t, dur = 650) {
+  if (outEl) tw(outEl, [{ transform: "rotateX(0deg)", opacity: 1 }, { transform: "rotateX(90deg)", opacity: 0 }], t, dur, EASE.ios);
+  tw(inEl, [{ transform: "rotateX(-90deg)", opacity: 0 }, { transform: "rotateX(0deg)", opacity: 1 }], t + 60, dur, EASE.ios);
+}
+// Depth gestures: keyframe factories for HTML elements (perspective comes from .stage). Combine them with
+// geometry tweens (left/top/width/height) on the same element; they only touch `transform` (and opacity for fan).
+const DEPTH = {
+  // momentarily rise toward the camera and tip back, e.g. while an object separates or moves
+  lift: (z = 50, tilt = 14) => [{ transform: "translateZ(0px) rotateX(0deg)" }, { transform: `translateZ(${z}px) rotateX(${tilt}deg)`, offset: .45 }, { transform: "translateZ(0px) rotateX(0deg)" }],
+  // a row of n items swings in like a hand of cards, outer items turned the most
+  fan: (i, n, deg = 34) => [{ transform: `rotateY(${(i - (n - 1) / 2) * -deg}deg)`, opacity: 0 }, { transform: "rotateY(0deg)", opacity: 1 }],
+  // a panel hinges into place (set transform-origin to the hinge edge)
+  swing: (deg = 40, axis = "X") => [{ transform: `rotate${axis}(${deg}deg)` }, { transform: `rotate${axis}(0deg)` }],
+  // fly by (dx, dy) on an arc that passes close to the camera, landing flat
+  flyZ: (dx, dy, z = 160, arc = -110, s0 = 1) => [{ transform: `translate3d(0px,0px,0px) scale(${s0})` },
+    { transform: `translate3d(${dx / 2}px,${dy / 2 + arc}px,${z}px) scale(${(1 + s0) / 2})`, offset: .5 }, { transform: `translate3d(${dx}px,${dy}px,0px) scale(1)` }],
+  // a finished block leans back into the distance (endings, hand-offs)
+  tiltBack: (deg = 16, z = -80) => [{ transform: "translateZ(0px) rotateX(0deg)" }, { transform: `translateZ(${z}px) rotateX(${deg}deg)` }]
+};
+// Coin flip for SVG circles/ellipses (CSS 3D does not apply to SVG children): call from a hook with p in 0..1
+const coin = (ellipse, r, p) => ellipse.setAttribute("rx", (r * Math.abs(Math.cos(Math.PI * p))).toFixed(2));
+// Lightweight 3D camera for point clouds, stacks and orbits drawn in SVG/HTML (no WebGL). Front-on
+// (az = el = 0, dist = D) maps world (x, y, 0) to stage px exactly, so flat elements hand off to 3D seamlessly.
+function cam3d(fov = 35) {
+  const D = (STAGE.h / 2) / Math.tan(fov * Math.PI / 360);
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm = (a) => { const l = Math.hypot(...a); return a.map((v) => v / l); };
+  let pos, right, up, fwd, tgt;
+  // sx, sy: where the target appears on screen (default: its own flat position, so front-on is pixel-identical)
+  let anc;
+  const set = (az = 0, el = 0, dist = D, tx = 0, ty = 0, tz = 0, sx = STAGE.w / 2 + tx, sy = STAGE.h / 2 - ty) => {
+    tgt = [tx, ty, tz]; anc = [sx, sy];
+    pos = [tx + dist * Math.sin(az) * Math.cos(el), ty + dist * Math.sin(el), tz + dist * Math.cos(az) * Math.cos(el)];
+    fwd = norm(sub([tx, ty, tz], pos)); right = norm(cross(fwd, [0, 1, 0])); up = cross(right, fwd);
+  };
+  // returns stage px, a size scale s (1 at z = 0 front-on) and depth (distance along the view axis; draw far → near).
+  // Lens shift: the target stays at its own front-on stage position, so any target (not just the centre) hands off exactly.
+  const project = (p) => { const v = sub(p, pos), z = dot(v, fwd), s = D / z;
+    return { x: anc[0] + dot(v, right) * s, y: anc[1] - dot(v, up) * s, s, depth: z }; };
+  const world = (px, py) => [px - STAGE.w / 2, STAGE.h / 2 - py];
+  set(); return { D, set, project, world, eye: () => pos, fwd: () => fwd };
+}
+// Tiers
+const enter = { hero: (y = 26) => [{ opacity: 0, transform: `translateY(${dy(y)}px)`, filter: blur(10) }, { opacity: 1, transform: "translateY(0)", filter: blur(0) }],
+                support: (y = 12) => [{ opacity: 0, transform: `translateY(${dy(y)}px)` }, { opacity: 1, transform: "translateY(0)" }],
+                meta: () => [{ opacity: 0 }, { opacity: 1 }] };
+// Scenes: wrapper appears at start, leaves ~200 ms before its end (no stacked frames). Last scene holds.
+function scene(el, start, end, last = false) {
+  tw(el, [{ opacity: 0 }, { opacity: 1 }], start, 1, EASE.linear);
+  if (!last) tw(el, [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: `translateY(${dy(-20)}px)` }], end - 200, 260, EASE.exit);
+  return (ms) => start + ms;
+}
+
+/* Path morphs: resample to N points, match winding + start point, interpolate in a hook. */
+const NS = "http://www.w3.org/2000/svg";
+function samplePath(d, n = 180) {
+  const svg = document.querySelector(".stage svg"), p = document.createElementNS(NS, "path"); p.setAttribute("d", d); svg.appendChild(p);
+  const L = p.getTotalLength(), pts = []; for (let i = 0; i < n; i++) { const q = p.getPointAtLength(L * i / n); pts.push([q.x, q.y]); } p.remove(); return pts;
+}
+const area = (P) => P.reduce((s, p, i) => { const q = P[(i + 1) % P.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0);
+function alignPts(A, B) {
+  if (Math.sign(area(A)) !== Math.sign(area(B))) B = B.slice().reverse();
+  let best = 0, bestD = Infinity; const n = A.length;
+  for (let k = 0; k < n; k++) { let d = 0; for (let i = 0; i < n; i += 3) { const b = B[(i + k) % n]; d += (A[i][0] - b[0]) ** 2 + (A[i][1] - b[1]) ** 2; } if (d < bestD) { bestD = d; best = k; } }
+  return A.map((_, i) => B[(i + best) % n]);
+}
+const toD = (P) => "M" + P.map((p) => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L") + "Z";
+const morphs = new Map();
+// Chain shapes on one path: morph(el, [d0, d1, d2], [[start, dur], [start, dur]])
+function morph(el, shapes, times, f = FN.move) {
+  const P = [samplePath(shapes[0])]; for (let i = 1; i < shapes.length; i++) P.push(alignPts(P[i - 1], samplePath(shapes[i])));
+  el.setAttribute("d", toD(P[0]));
+  hook((t) => {
+    let out = P[0];
+    times.forEach(([s, d], i) => { if (t >= s) out = t >= s + d ? P[i + 1] : P[i].map((a, j) => { const b = P[i + 1][j], p = prog(t, s, d, f); return [a[0] + (b[0] - a[0]) * p, a[1] + (b[1] - a[1]) * p]; }); });
+    el.setAttribute("d", toD(out));
+  });
+}
+
+
+/* box3d: solid boxes, segments and dots in an SVG <g>, projected through a cam3d camera.
+   Faces turned away from the camera are culled, faces are lit by a fixed light, and every
+   primitive is painter-sorted far → near, so it scrubs deterministically (no WebGL).
+   Usage:  const B = box3d(svgGroup, cam);
+           const b = B.box({ c: [x, y, z], s: [w, h, d], color: "#3a3a3c", edge: "rgba(255,255,255,.15)" });
+           B.seg([x1, y1, z1], [x2, y2, z2], { color, width });   B.dot([x, y, z], { r, color });
+           hook((t) => { cam.set(...); b.c[1] = ...; b.glow = ...; B.draw(); });
+   Every item has mutable fields (c, s, p1, p2, p, color, opacity, glow, glowColor, visible). */
+function box3d(group, cam) {
+  const NSs = "http://www.w3.org/2000/svg", items = [], pool = [];
+  const L = (() => { const v = [.35, .9, .5], l = Math.hypot(...v); return v.map((x) => x / l); })();
+  const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  const mix = (a, b, p) => a.map((v, i) => v + (b[i] - v) * p);
+  const rgb = (c, o = 1) => `rgba(${c.map((v) => Math.round(Math.min(255, Math.max(0, v)))).join(",")},${o.toFixed(3)})`;
+  const FACES = [[[4, 5, 6, 7], [0, 0, 1]], [[1, 0, 3, 2], [0, 0, -1]], [[0, 4, 7, 3], [-1, 0, 0]], [[5, 1, 2, 6], [1, 0, 0]],
+                 [[7, 6, 2, 3], [0, 1, 0]], [[0, 1, 5, 4], [0, -1, 0]]];
+  const corners = (c, s) => [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]]
+    .map(([a, b, d]) => [c[0] + a * s[0] / 2, c[1] + b * s[1] / 2, c[2] + d * s[2] / 2]);
+  const add = (o) => (items.push(Object.assign({ opacity: 1, glow: 0, glowColor: "#64d2ff", visible: true }, o)), items[items.length - 1]);
+  const node = (i) => { while (pool.length <= i) { const p = document.createElementNS(NSs, "path"); group.appendChild(p); pool.push(p); } return pool[i]; };
+  function draw() {
+    const eye = cam.eye(), fwd = cam.fwd(), prims = [];
+    const depth = (p) => (p[0] - eye[0]) * fwd[0] + (p[1] - eye[1]) * fwd[1] + (p[2] - eye[2]) * fwd[2];
+    for (const it of items) {
+      if (!it.visible || it.opacity <= .002) continue;
+      if (it.kind === "box") {
+        const C = corners(it.c, it.s), P = C.map((q) => cam.project(q)), base = mix(hex(it.color), hex(it.glowColor), it.glow);
+        for (const [idx, n] of FACES) {
+          const fc = idx.reduce((a, k) => [a[0] + C[k][0] / 4, a[1] + C[k][1] / 4, a[2] + C[k][2] / 4], [0, 0, 0]);
+          const toEye = [eye[0] - fc[0], eye[1] - fc[1], eye[2] - fc[2]];
+          if (n[0] * toEye[0] + n[1] * toEye[1] + n[2] * toEye[2] <= 0) continue;          // back face
+          const lit = .5 + .5 * Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) + .35 * it.glow;
+          prims.push({ z: depth(fc) - (it.bias || 0), d: "M" + idx.map((k) => P[k].x.toFixed(1) + " " + P[k].y.toFixed(1)).join("L") + "Z",
+                       fill: rgb(base.map((v) => v * lit), it.opacity), stroke: it.edge || "none", sw: 1 });
+        }
+      } else if (it.kind === "seg") {
+        const a = cam.project(it.p1), b = cam.project(it.p2);
+        prims.push({ z: depth([(it.p1[0] + it.p2[0]) / 2, (it.p1[1] + it.p2[1]) / 2, (it.p1[2] + it.p2[2]) / 2]) - (it.bias || 0),
+                     d: `M${a.x.toFixed(1)} ${a.y.toFixed(1)}L${b.x.toFixed(1)} ${b.y.toFixed(1)}`, fill: "none",
+                     stroke: it.color.startsWith("#") ? rgb(hex(it.color), it.opacity) : it.color, sw: it.width || 1.5 });
+      } else if (it.kind === "dot") {
+        const q = cam.project(it.p), r = (it.r || 4) * q.s;
+        prims.push({ z: depth(it.p) - (it.bias || 0), d: `M${(q.x - r).toFixed(1)} ${q.y.toFixed(1)}a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(2 * r).toFixed(2)} 0a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(-2 * r).toFixed(2)} 0`,
+                     fill: rgb(hex(it.color), it.opacity), stroke: "none", sw: 0 });
+      }
+    }
+    prims.sort((a, b) => b.z - a.z);
+    prims.forEach((p, i) => { const e = node(i); e.setAttribute("d", p.d); e.setAttribute("fill", p.fill); e.setAttribute("stroke", p.stroke);
+      e.setAttribute("stroke-width", p.sw); e.setAttribute("stroke-linecap", "round"); e.removeAttribute("display"); });
+    for (let i = prims.length; i < pool.length; i++) pool[i].setAttribute("display", "none");
+  }
+  return {
+    box: (o) => add(Object.assign({ kind: "box", color: "#3a3a3c" }, o)),
+    seg: (p1, p2, o = {}) => add(Object.assign({ kind: "seg", p1, p2, color: "#64d2ff" }, o)),
+    dot: (p, o = {}) => add(Object.assign({ kind: "dot", p, color: "#64d2ff" }, o)),
+    draw, items, hide: () => pool.forEach((e) => e.setAttribute("display", "none"))
+  };
+}
+
+/* =====================================================================
+   SCENES — How a chip with billions of transistors works (9:16, 60 s)
+   One world: chip → zoom → transistor → four transistors → gate → circuits →
+   exploded wiring layers → back to the chip.
+   ===================================================================== */
+const TOTAL = 60000;
+const SC = { hook: 0, zoom: 6000, sw: 12500, gate: 21000, circ: 29000, layers: 36000, clock: 45000, fin: 52500 };
+const lerp = (a, b, p) => a + (b - a) * p;
+const lerp3 = (a, b, p) => a.map((v, i) => lerp(v, b[i], p));
+const P = (t, s, d, f = FN.move) => prog(t, s, d, f);
+const NS2 = "http://www.w3.org/2000/svg";
+$("stage").style.width = STAGE.w + "px"; $("stage").style.height = STAGE.h + "px";
+const cam = cam3d(), D = cam.D;
+const B = box3d($("w3d"), cam);
+const mkLab = (txt, color) => { const d = document.createElement("div"); d.className = "lab3"; d.textContent = txt; if (color) d.style.color = color; $("labs").appendChild(d); return d; };
+const placeLab = (el, p, op) => { const q = cam.project(p); el.style.left = q.x + "px"; el.style.top = q.y + "px"; el.style.opacity = Math.max(0, op).toFixed(3); };
+const svgEl = (tag, attrs, parent) => { const e = document.createElementNS(NS2, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+
+/* ---------- Headlines: drum rolls ---------- */
+tw($("kick"), enter.meta(), 300, 250);
+tw($("kick"), [{ opacity: 1 }, { opacity: 0 }], SC.zoom, 250, EASE.exit);
+roll3d(null, $("h1"), 400);
+[["h1", "h2", SC.zoom], ["h2", "h3", SC.sw], ["h3", "h4", SC.gate], ["h4", "h5", SC.circ], ["h5", "h6", SC.layers], ["h6", "h7", SC.clock], ["h7", "h8", SC.fin]]
+  .forEach(([a, b, t]) => roll3d($(a), $(b), t + 300));
+tw($("sub8"), enter.support(), SC.fin + 1200, 450);
+
+/* =====================================================================
+   3D MODELS (box3d). Biases keep things stacked correctly: the camera is always above.
+   ===================================================================== */
+// --- The chip package, facing the camera (front face at z = 0 → flat-identical front-on)
+const CHIP = [];
+CHIP.push(B.box({ c: [0, -20, -16], s: [320, 320, 32], color: "#1c1c1e", edge: "rgba(255,255,255,.12)", bias: -1000 }));
+CHIP.push(B.box({ c: [0, -20, 4], s: [200, 200, 8], color: "#26324a", edge: "rgba(100,210,255,.5)" }));
+for (let k = 1; k < 8; k++) {
+  const v = -100 + k * 25;
+  CHIP.push(B.seg([v, -120, 8.5], [v, 80, 8.5], { color: "#4f86bd", width: 1.2, bias: 10 }));
+  CHIP.push(B.seg([-100, -120 + k * 25, 8.5], [100, -120 + k * 25, 8.5], { color: "#4f86bd", width: 1.2, bias: 10 }));
+}
+for (let k = 0; k < 10; k++) {
+  const v = -135 + k * 30;
+  CHIP.push(B.box({ c: [v, 130, 1], s: [14, 10, 2], color: "#c9a227", bias: 5 }), B.box({ c: [v, -170, 1], s: [14, 10, 2], color: "#c9a227", bias: 5 }));
+  CHIP.push(B.box({ c: [150, -20 + v, 1], s: [10, 14, 2], color: "#c9a227", bias: 5 }), B.box({ c: [-150, -20 + v, 1], s: [10, 14, 2], color: "#c9a227", bias: 5 }));
+}
+const CHIP_BASE_OP = CHIP.map((it) => it.opacity);
+
+// --- A transistor (cross-section model): substrate, source/drain, channel, oxide, gate, contacts
+function transistor(ox, oz) {
+  const e = "rgba(255,255,255,.12)";
+  const o = {
+    sub:  B.box({ c: [ox, -61, oz], s: [440, 80, 260], color: "#3a3a3c", edge: "rgba(255,255,255,.10)", bias: -1000 }),
+    src:  B.box({ c: [ox - 140, -27, oz], s: [120, 14, 200], color: "#30d158", edge: e }),
+    drn:  B.box({ c: [ox + 140, -27, oz], s: [120, 14, 200], color: "#30d158", edge: e }),
+    chan: B.box({ c: [ox, -27, oz], s: [160, 14, 200], color: "#48484a", glowColor: "#64d2ff" }),
+    oxd:  B.box({ c: [ox, -17, oz], s: [150, 6, 200], color: "#d1d1d6", bias: 10 }),
+    gate: B.box({ c: [ox, 6, oz], s: [140, 40, 200], color: "#ff9f0a", glowColor: "#ffd60a", edge: "rgba(255,255,255,.18)", bias: 20 }),
+    cS:   B.box({ c: [ox - 140, 8, oz], s: [34, 56, 34], color: "#8e8e93", bias: 20 }),
+    cD:   B.box({ c: [ox + 140, 8, oz], s: [34, 56, 34], color: "#8e8e93", bias: 20 })
+  };
+  o.all = Object.values(o); o.ox = ox; o.oz = oz; return o;
+}
+const TR = [transistor(0, 0), transistor(520, 0), transistor(0, -380), transistor(520, -380)];
+const ELEC = [];
+for (let r = 0; r < 3; r++) for (let k = 0; k < 7; k++) ELEC.push({ it: B.dot([0, -22 - r * 4.5, 101], { r: 3.4, color: "#64d2ff", bias: 60 }), r, k });
+// NAND wiring between the four transistors (drawn on in scene 4)
+const WIRES = [
+  [[140, 36, 0], [380, 36, 0]], [[-140, 36, -380], [-140, 36, 0]], [[140, 36, -380], [380, 36, -380]],
+  [[660, 36, -380], [660, 36, 0]], [[0, 26, 0], [0, 26, -380]], [[520, 26, 0], [520, 26, -380]]
+].map(([a, b]) => ({ a, b, it: B.seg(a, a.slice(), { color: "#64d2ff", width: 4, bias: 300 }) }));
+
+// --- Exploded stack: silicon with transistors, then metal wiring layers
+const LAYER = { base: B.box({ c: [0, -200, 0], s: [460, 40, 320], color: "#2c2c2e", edge: "rgba(255,255,255,.12)", bias: -1000 }), tiles: [], metals: [], wires: [] };
+for (let i = 0; i < 9; i++) for (let j = 0; j < 6; j++) LAYER.tiles.push(B.box({ c: [-184 + i * 46, -175, -120 + j * 48], s: [18, 10, 18], color: "#ff9f0a", bias: 5 }));
+for (let k = 0; k < 6; k++) {
+  LAYER.metals.push(B.box({ c: [0, 0, 0], s: [460, 6, 320], color: "#b87333", edge: "rgba(255,190,140,.45)", bias: 20 + k * 20 }));
+  for (let j = 0; j < 7; j++) LAYER.wires.push({ k, j, it: B.seg([0, 0, 0], [0, 0, 0], { color: "#ffc59a", width: 2, bias: 25 + k * 20 }) });
+}
+const layerY = (k, t) => {
+  const e = P(t, SC.layers + 1000 + k * 110, 1300) * (1 - P(t, SC.clock + (5 - k) * 60, 900));
+  return lerp(-165 + k * 8, -130 + k * 48, e);
+};
+const ALL_LAYER = [LAYER.base, ...LAYER.tiles, ...LAYER.metals, ...LAYER.wires.map((w) => w.it)];
+const ALL_TR = TR.flatMap((o) => o.all);
+
+/* ---------- Labels over 3D ---------- */
+const L = { src: mkLab("source", "#30d158"), drn: mkLab("drain", "#30d158"), gate: mkLab("gate", "#ff9f0a"), chan: mkLab("current flows", "#64d2ff"),
+            si: mkLab("transistors · silicon", "#ff9f0a"), metal: mkLab("10+ layers of metal wiring", "#ffb27a") };
+
+/* ---------- One camera for the whole piece ---------- */
+function camAt(t) {
+  if (t < SC.zoom + 3800) {                                               // 1 · chip tilts to show its depth, returns front-on
+    const a = P(t, 300, 2300), dr = P(t, 2600, 2100, FN.linear), b = P(t, 4700, 1100);
+    return { az: (.55 * a + .12 * dr) * (1 - b), el: .4 * a * (1 - b), dist: D * (1 - .06 * a * (1 - b)), tg: [0, -20, 0] };
+  }
+  if (t < SC.layers) {                                                    // 3-4 · top-down → 3/4 view → pull back over four transistors
+    const pT = P(t, 12800, 1800);
+    let az = lerp(0, -.6, pT) + .15 * P(t, 14600, 6200, FN.linear), el = lerp(1.55, .5, pT), dist = lerp(D, .92 * D, pT), tg = [0, -20, 0];
+    const pP = P(t, SC.gate, 1600);
+    az = lerp(az, -.45, pP) + .08 * P(t, 22600, 2000, FN.linear); el = lerp(el, .72, pP); dist = lerp(dist, 2.5 * D, pP); tg = lerp3(tg, [260, -20, -190], pP);
+    return { az, el, dist, tg, anc: [STAGE.w / 2, lerp(STAGE.h / 2 + 20, STAGE.h / 2 + 10, pP)] };   // keep the cluster centred
+  }
+  if (t < SC.clock + 1000) {                                              // 6 · orbit the exploded stack, then return front-on
+    const pF = P(t, SC.clock, 1000);
+    return { az: lerp(lerp(-.75, .2, P(t, SC.layers, 9000, FN.linear)), 0, pF), el: lerp(.48, 0, pF), dist: lerp(1.25 * D, D, pF), tg: lerp3([0, -40, 0], [0, -20, 0], pF) };
+  }
+  const a = P(t, SC.fin + 100, 2600), tb = P(t, SC.fin + 3100, 3000);    // 8 · orbit, then tilt back
+  return { az: .45 * a, el: .35 * a + .5 * tb, dist: D * (1 + .3 * tb), tg: [0, -20, 0] };
+}
+const setCamAt = (t) => { const c = camAt(t); cam.set(c.az, c.el, c.dist, ...c.tg, ...(c.anc || [])); };
+
+/* =====================================================================
+   2D ZOOM (scene 2) — built from the front-on projection, so it hands off exactly
+   ===================================================================== */
+setCamAt(SC.zoom);                                                        // front-on chip
+const pr = (p) => cam.project(p);
+const zoomG = $("zoom");
+const rectPts = (c, s, z) => { const a = pr([c[0] - s[0] / 2, c[1] + s[1] / 2, z]), b = pr([c[0] + s[0] / 2, c[1] - s[1] / 2, z]); return [a.x, a.y, b.x - a.x, b.y - a.y]; };
+const zr = (r, attrs) => svgEl("rect", Object.assign({ x: r[0], y: r[1], width: r[2], height: r[3] }, attrs), zoomG);
+const chipR = zr(rectPts([0, -20], [320, 320], 0), { fill: "#1c1c1e", stroke: "rgba(255,255,255,.12)", "vector-effect": "non-scaling-stroke" });
+const dieRect = rectPts([0, -20], [200, 200], 8);
+const dieR = zr(dieRect, { fill: "#26324a", stroke: "rgba(100,210,255,.5)", "vector-effect": "non-scaling-stroke" });
+const gridPath = (x0, y0, w, h, step) => { let d = ""; for (let x = x0 + step; x < x0 + w - 1e-9; x += step) d += `M${x} ${y0}V${y0 + h}`; for (let y = y0 + step; y < y0 + h - 1e-9; y += step) d += `M${x0} ${y}H${x0 + w}`; return d; };
+const cell = dieRect[2] / 8;
+const L0 = svgEl("path", { d: gridPath(dieRect[0], dieRect[1], dieRect[2], dieRect[3], cell), stroke: "#4f86bd", "stroke-width": 1.2, fill: "none", "vector-effect": "non-scaling-stroke" }, zoomG);
+const F = [dieRect[0] + cell * 4.5, dieRect[1] + cell * 4.5];             // zoom focus: centre of a die cell
+const lvl = (span, step, color) => svgEl("path", { d: gridPath(F[0] - span / 2, F[1] - span / 2, span, span, step), stroke: color, "stroke-width": 1, fill: "none", "vector-effect": "non-scaling-stroke" }, zoomG);
+const L1 = lvl(cell, cell / 10, "#5f9ad6"), L2 = lvl(cell / 10, cell / 100, "#7fb3e6");
+// Final level: the transistor seen from above, mapped back into zoom space
+const S_END = 2400, TF = [STAGE.w / 2, STAGE.h / 2 + 20];
+cam.set(0, 1.55, D, 0, -20, 0);
+const topQuad = (it) => { const [cx, cy, cz] = it.c, [w, h, d] = it.s, y = cy + h / 2;
+  return [[cx - w / 2, y, cz - d / 2], [cx + w / 2, y, cz - d / 2], [cx + w / 2, y, cz + d / 2], [cx - w / 2, y, cz + d / 2]].map((q) => { const s = pr(q); return [F[0] + (s.x - TF[0]) / S_END, F[1] + (s.y - TF[1]) / S_END]; }); };
+const L3 = svgEl("g", { opacity: 0 }, zoomG);
+const t0 = TR[0];
+[[t0.sub, "#353537"], [t0.chan, "#424244"], [t0.src, "#2cbf51"], [t0.drn, "#2cbf51"], [t0.gate, "#e8910a"], [t0.cS, "#828287"], [t0.cD, "#828287"]]
+  .forEach(([it, fill]) => svgEl("polygon", { points: topQuad(it).map((p) => p.join(",")).join(" "), fill, stroke: "rgba(255,255,255,.12)", "vector-effect": "non-scaling-stroke" }, L3));
+const ZOOM = [SC.zoom + 300, 3500];
+const lvlOp = (sp) => Math.min(1, Math.max(0, (sp - 5) / 15)) * Math.min(1, Math.max(0, (260 - sp) / 160));
+hook((t) => {
+  const p = P(t, ...ZOOM), S = Math.exp(Math.log(S_END) * p), T = [lerp(F[0], TF[0], p), lerp(F[1], TF[1], p)];
+  zoomG.setAttribute("transform", `translate(${T[0]} ${T[1]}) scale(${S}) translate(${-F[0]} ${-F[1]})`);
+  zoomG.setAttribute("opacity", t >= SC.zoom && t < 9800 ? 1 : t >= 9800 && t < 10100 ? 1 - (t - 9800) / 300 : 0);
+  L0.setAttribute("opacity", lvlOp(cell * S)); L1.setAttribute("opacity", lvlOp(cell / 10 * S)); L2.setAttribute("opacity", lvlOp(cell / 100 * S));
+  L3.setAttribute("opacity", Math.min(1, Math.max(0, (S - 300) / 700)));
+  dieR.setAttribute("fill-opacity", 1 - Math.min(1, Math.max(0, (S - 200) / 800)));
+  chipR.setAttribute("opacity", 1 - Math.min(1, Math.max(0, (S - 1.15) / 1.2)));
+});
+// Scale comparison: hundreds of transistors across one hair
+tw($("tickLab"), enter.meta(), 10400, 250);
+tw($("ticks"), [{ opacity: 1, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0% 0 0)" }], 10500, 1100, EASE.move);
+tw($("hair"), enter.support(), 10300, 450);
+["tickLab", "ticks", "hair"].forEach((id) => tw($(id), [{ opacity: 1 }, { opacity: 0 }], SC.sw + 200, 250, EASE.exit));
+
+/* ---------- 3 · Switch: the badge flips 1 ↔ 0 ---------- */
+const ON = 15300, OFF = 18000;
+tw($("b1"), [{ transform: "rotateY(-90deg)", opacity: 0 }, { transform: "rotateY(0deg)", opacity: 1 }], ON, 450, EASE.ios);
+tw($("b1"), [{ transform: "rotateY(0deg)", opacity: 1 }, { transform: "rotateY(90deg)", opacity: 0 }], OFF, 300, EASE.exit);
+tw($("b0"), [{ transform: "rotateY(-90deg)", opacity: 0 }, { transform: "rotateY(0deg)", opacity: 1 }], OFF + 280, 450, EASE.ios);
+tw($("b0"), [{ opacity: 1 }, { opacity: 0 }], SC.gate - 300, 250, EASE.exit);
+tw($("n1"), enter.meta(), 16200, 250);
+tw($("n1"), [{ opacity: 1 }, { opacity: 0 }], SC.gate, 250, EASE.exit);
+
+/* ---------- 4 · Gate: four transistors → NAND symbol + truth table ---------- */
+setCamAt(24500);
+let bb = [1e9, 1e9, -1e9, -1e9];
+ALL_TR.forEach((it) => { const [cx, cy, cz] = it.c, [w, h, d] = it.s;
+  [[-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]].forEach(([a, b2, c2]) => {
+    const q = pr([cx + a * w / 2, cy + b2 * h / 2, cz + c2 * d / 2]); bb = [Math.min(bb[0], q.x), Math.min(bb[1], q.y), Math.max(bb[2], q.x), Math.max(bb[3], q.y)]; }); });
+const SQ = `M ${bb[0]} ${bb[1]} L ${bb[2]} ${bb[1]} L ${bb[2]} ${bb[3]} L ${bb[0]} ${bb[3]} Z`;
+const DSHAPE = "M 260 470 L 345 470 A 85 85 0 0 1 345 640 L 260 640 Z";
+morph($("nand"), [SQ, DSHAPE], [[24700, 900]]);
+tw($("flat"), [{ opacity: 0 }, { opacity: 1 }], 24450, 350, EASE.linear);
+["inA", "inB", "outW"].forEach((id, i) => tw($(id), [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], 25600 + i * 120, 500, EASE.out));
+tw($("bub"), [{ opacity: 0, transform: "scale(.2)" }, { opacity: 1, transform: "scale(1)" }], 25650, 450, EASE.snappy);
+$("bub").style.transformOrigin = "443px 555px";
+tw($("ioLab"), enter.meta(), 26000, 250);
+["dA", "dB", "dO"].forEach((id) => tw($(id), [{ opacity: 0 }, { opacity: 1 }], 25800, 300, EASE.out));
+const ROWS = [["A", "B", "OUT", true], [0, 0, 1], [0, 1, 1], [1, 0, 1], [1, 1, 0]];
+$("ttRows").innerHTML = ROWS.slice(1).map((r, i) => `<div class="tt row" id="tr${i}" style="top:${760 + i * 60}px"><span>${r[0]}</span><span>${r[1]}</span><span class="arrow">→</span><span style="color:${r[2] ? "#30d158" : "#a1a1a6"}">${r[2]}</span></div>`).join("");
+tw($("tth"), enter.meta(), 26200, 250);
+[0, 1, 2, 3].forEach((i) => tw($("tr" + i), [{ transform: "rotateX(-80deg)", opacity: 0 }, { transform: "rotateX(0deg)", opacity: 1 }], 26300 + i * 120, 600, EASE.ios));
+tw($("tr3"), [{ background: "rgba(28,28,30,1)", boxShadow: "inset 0 0 0 0 rgba(41,151,255,0)" }, { background: "rgba(41,151,255,.2)", boxShadow: "inset 0 0 0 2px rgba(41,151,255,1)" }], 27600, 300, EASE.out);
+const FLIP = 27600;
+hook((t) => {   // coin-flip the input dots to 1 and the output to 0 on the highlighted row
+  const p = P(t, FLIP, 420, FN.linear), on = p >= .5;
+  [["dA", "#636366", "#30d158"], ["dB", "#636366", "#30d158"], ["dO", "#30d158", "#636366"]].forEach(([id, a, b]) => { coin($(id), 13, p); $(id).setAttribute("fill", on ? b : a); });
+});
+["tth", "tr0", "tr1", "tr2", "tr3"].forEach((id) => tw($(id), [{ opacity: 1 }, { opacity: 0 }], SC.circ - 150, 250, EASE.exit));
+
+/* ---------- 5 · Circuits: the gate shrinks into a grid of gates, which become cards ---------- */
+const GS = .22, CX = [100, 230, 360, 490, 620], CY = [475, 555, 635, 715];
+$("flatW").style.transformOrigin = "360px 555px";
+tw($("flatW"), [{ transform: "scale(1)" }, { transform: `scale(${GS})` }], SC.circ + 200, 650, EASE.ios);
+const miniSVG = `<svg viewBox="100 440 520 230" width="${520 * GS}" height="${230 * GS}"><g stroke="#a1a1a6" stroke-width="9" stroke-linecap="round"><path d="M170 512H262M170 598H262M456 555H550"/></g>
+  <path d="${DSHAPE}" fill="#1c1c1e" stroke="#2997ff" stroke-width="12"/><circle cx="443" cy="555" r="14" fill="#000" stroke="#2997ff" stroke-width="10"/></svg>`;
+const minis = [];
+CY.forEach((y, r) => CX.forEach((x, c) => { if (r === 1 && c === 2) return;
+  const d = document.createElement("div"); d.className = "mini"; d.innerHTML = miniSVG;
+  Object.assign(d.style, { left: x - (360 - 100) * GS + "px", top: y - (555 - 440) * GS + "px" }); $("minis").appendChild(d); minis.push({ d, x, y, r, c }); }));
+minis.forEach((m) => { const dist = Math.hypot(m.x - 360, m.y - 555);
+  tw(m.d, [{ opacity: 0, transform: "scale(.4)" }, { opacity: 1, transform: "scale(1)" }], SC.circ + 800 + dist / 700 * 380, 450, EASE.snappy); });
+const GATHER = SC.circ + 1700;
+minis.forEach((m) => { const toA = m.c < 2 || (m.c === 2 && m.r % 2 === 0), tx = (toA ? 205 : 515) - m.x, ty = 670 - m.y;
+  tw(m.d, [{ opacity: 1, transform: "translate(0px,0px) scale(1)" }, { opacity: 0, transform: `translate(${tx}px,${ty}px) scale(.5)` }], GATHER + Math.abs(tx) / 3, 500, EASE.move); });
+tw($("flat"), [{ opacity: 1 }, { opacity: 0 }], GATHER + 100, 300, EASE.exit);
+["cardA", "cardB"].forEach((id, i) => tw($(id), DEPTH.fan(i, 2, 40), GATHER + 300 + i * 90, 800, EASE.ios));
+tw($("cardA"), DEPTH.lift(70, 12), SC.circ + 3600, 900, EASE.move);
+tw($("cardB"), DEPTH.lift(70, 12), SC.circ + 4600, 900, EASE.move);
+["cardA", "cardB"].forEach((id, i) => tw($(id), [{ opacity: 1, transform: "translateZ(0px) rotateX(0deg)" }, { opacity: 0, transform: "translateZ(-260px) rotateX(35deg)" }], SC.layers - 500 + i * 90, 600, EASE.move));
+
+/* ---------- 7 · Clock: ticks, flickering cells, a counter ---------- */
+setCamAt(SC.clock + 2000);                                                // front-on chip
+const cellsG = $("cells"), CELLS = [];
+for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+  const r = rectPts([-100 + (i + .5) * 25, -120 + (j + .5) * 25], [19, 19], 8.6);
+  CELLS.push(svgEl("rect", { x: r[0], y: r[1], width: r[2], height: r[3], rx: 3, fill: "#2a3a50" }, cellsG));
+}
+const TICK = 260, CLK = [SC.clock + 1400, SC.fin - 200];
+const hash = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
+hook((t) => {
+  const vis = Math.min(P(t, CLK[0], 300, FN.out), 1 - P(t, CLK[1], 300));
+  cellsG.setAttribute("opacity", vis.toFixed(3)); $("wave").setAttribute("opacity", vis.toFixed(3));
+  const tick = Math.floor((t - CLK[0]) / TICK);
+  CELLS.forEach((c, i) => c.setAttribute("fill", hash(i, tick) > .55 ? "#64d2ff" : "#2a3a50"));
+  const off = ((t - CLK[0]) / TICK * 60) % 120; let d = "";
+  for (let x = -120 - off; x < 760; x += 120) d += `M${x} 960 H${x + 60} V910 H${x + 120} V960 `;
+  $("wave").setAttribute("d", d);
+});
+tw($("count"), enter.support(), CLK[0], 450);
+counter($("count"), 0, 3e9, CLK[0] + 200, 1800, (v) => Math.round(v).toLocaleString("en-US"));
+tw($("countLab"), enter.meta(), CLK[0] + 1200, 250);
+tw($("n2"), enter.meta(), CLK[0] + 1800, 250);
+["count", "countLab", "n2"].forEach((id) => tw($(id), [{ opacity: 1 }, { opacity: 0 }], CLK[1], 300, EASE.exit));
+tw($("n3"), enter.meta(), SC.fin + 3600, 250);
+
+/* =====================================================================
+   3D DRIVER: camera, visibility, live parts, then draw
+   ===================================================================== */
+hook((t) => {
+  setCamAt(t);
+  // which world is visible
+  let g = 0;
+  if (t < SC.zoom) g = 1; else if (t >= 9800 && t < 10100) g = (t - 9800) / 300; else if (t >= 10100 && t < 24400) g = 1;
+  else if (t >= 24400 && t < 24800) g = 1 - (t - 24400) / 400; else if (t >= SC.layers) g = Math.min(1, (t - SC.layers) / 500);
+  $("w3d").style.opacity = g.toFixed(3);
+  const chipOp = t < SC.zoom ? 1 : P(t, SC.clock + 600, 400, FN.linear);
+  CHIP.forEach((it) => { it.visible = chipOp > 0; it.opacity = chipOp; });
+  // transistors
+  const trVis = t >= 9800 && t < 24800;
+  TR.forEach((o, i) => { const op = i === 0 ? 1 : P(t, SC.gate + 600 + i * 150, 400, FN.out); o.all.forEach((it) => { it.visible = trVis; it.opacity = op; }); });
+  const on = Math.min(P(t, ON, 300, FN.out), 1 - P(t, OFF, 300, FN.linear));
+  TR[0].gate.glow = on; TR[0].chan.glow = on * .85;
+  ELEC.forEach((e) => { e.it.visible = trVis && on > .01; e.it.opacity = on;
+    e.it.p = [-210 + (((t - ON) * .11 + e.k * 60 + e.r * 20) % 420 + 420) % 420, -22 - e.r * 4.5, 101]; });
+  WIRES.forEach((w, i) => { const p = P(t, 22600 + i * 150, 700); w.it.visible = trVis && p > 0; w.it.p2 = lerp3(w.a, w.b, p); });
+  // layers
+  const layVis = t >= SC.layers && t < SC.clock + 1000, layOp = 1 - P(t, SC.clock + 600, 400, FN.linear);
+  ALL_LAYER.forEach((it) => { it.visible = layVis; it.opacity = layOp * (it === LAYER.base || LAYER.tiles.includes(it) ? 1 : .85); });
+  LAYER.metals.forEach((m, k) => { m.c = [0, layerY(k, t), 0]; });
+  LAYER.wires.forEach((w) => { const y = layerY(w.k, t) + 3.2, j = w.j;
+    if (w.k % 2 === 0) { w.it.p1 = [-220, y, -120 + j * 40]; w.it.p2 = [220, y, -120 + j * 40]; }
+    else { w.it.p1 = [-180 + j * 60, y, -150]; w.it.p2 = [-180 + j * 60, y, 150]; } });
+  B.draw();
+  // labels
+  const lt = Math.min(P(t, 14400, 400, FN.out), 1 - P(t, SC.gate, 300, FN.linear));
+  placeLab(L.src, [-140, 46, 0], lt); placeLab(L.drn, [140, 46, 0], lt); placeLab(L.gate, [0, 36, 0], lt);
+  placeLab(L.chan, [0, -48, 110], Math.min(lt, on));
+  const ll = Math.min(P(t, SC.layers + 2600, 400, FN.out), 1 - P(t, SC.clock, 300, FN.linear));
+  placeLab(L.si, [150, -230, 170], ll); placeLab(L.metal, [150, layerY(5, t) + 22, 170], ll);
+});
+
+/* =====================================================================
+   TRANSPORT — keep as is
+   ===================================================================== */
+const ui = { play: $("play"), scrub: $("scrub"), time: $("time"), loop: $("loop"), speed: $("speed") };
+ui.scrub.max = TOTAL; let t = 0, playing = false, last = 0, rate = 1; const HOLD = 1200;
+function seek(ms) { if (queued.length) flushTweens(); t = Math.max(0, ms); const s = Math.min(t, TOTAL); for (const a of anims) a.currentTime = s; for (const h of hooks) h(s);
+  ui.scrub.value = s; ui.time.textContent = `${(s / 1000).toFixed(1)}s / ${(TOTAL / 1000).toFixed(1)}s`; }
+function frame(now) { if (!playing) return; let n = t + (now - last) * rate; last = now;
+  if (n >= TOTAL) { if (ui.loop.checked) { if (n >= TOTAL + HOLD) n = 0; } else { seek(TOTAL); pause(); return; } }
+  seek(n); requestAnimationFrame(frame); }
+function play() { if (playing) return; if (t >= TOTAL) seek(0); playing = true; ui.play.textContent = "Pause"; last = performance.now(); requestAnimationFrame(frame); }
+function pause() { playing = false; ui.play.textContent = "Play"; }
+ui.play.addEventListener("click", () => playing ? pause() : play());
+ui.speed.addEventListener("change", () => { rate = +ui.speed.value; });
+ui.scrub.addEventListener("input", () => { pause(); seek(+ui.scrub.value); });
+document.addEventListener("keydown", (e) => { if (e.code === "Space" && !e.target.matches("select")) { e.preventDefault(); playing ? pause() : play(); } });
+
+const vp = $("viewport"), stage = $("stage");
+stage.style.width = STAGE.w + "px"; stage.style.height = STAGE.h + "px";
+vp.style.aspectRatio = `${STAGE.w} / ${STAGE.h}`;
+if (STAGE.w > STAGE.h) $("wrap").classList.add("landscape");
+document.querySelectorAll(".stage > svg").forEach((s) => { s.style.width = STAGE.w + "px"; s.style.height = STAGE.h + "px"; });
+new ResizeObserver(() => { stage.style.transform = `scale(${vp.clientWidth / STAGE.w})`; }).observe(vp);
+window.Motion = { seek, play, pause, TOTAL, W: STAGE.w, H: STAGE.h };
+if (location.search.includes("render")) {
+  document.documentElement.classList.add("render");
+  $("wrap").style.width = STAGE.w + "px"; vp.style.width = STAGE.w + "px"; seek(0);
+} else { seek(reduce ? TOTAL : 0); if (!reduce) (document.fonts?.ready || Promise.resolve()).then(() => setTimeout(play, 400)); }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+[
+ {"id":"1-hook","start":0,"end":6000,"text":"The chip in your phone holds billions of transistors. So what does a transistor actually do?"},
+ {"id":"2-zoom","start":6000,"end":12500,"text":"Zoom in. Way in. They're so small that hundreds fit across a single human hair."},
+ {"id":"3-switch","start":12500,"end":21000,"text":"A transistor is a tiny switch. Voltage on the gate lets current flow: a one. No voltage, no flow: a zero."},
+ {"id":"4-gate","start":21000,"end":29000,"text":"Wire four together and you get a logic gate. This one outputs zero only when both inputs are one."},
+ {"id":"5-circuits","start":29000,"end":36000,"text":"Gates combine into circuits that add numbers, and memory cells that hold bits."},
+ {"id":"6-layers","start":36000,"end":45000,"text":"Billions of them sit in the silicon, and above them, more than ten layers of metal wiring connect them all."},
+ {"id":"7-clock","start":45000,"end":52500,"text":"A clock ticks billions of times a second, and on every tick, switches flip and signals move."},
+ {"id":"8-finale","start":52500,"end":60000,"text":"Billions of tiny switches, flipping billions of times a second. That's a chip."}
+]

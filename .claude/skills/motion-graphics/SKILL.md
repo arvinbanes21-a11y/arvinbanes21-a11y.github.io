@@ -17,7 +17,8 @@ world instead of cutting between slides.
    into *verified*, *claim* (label on screen), *estimate* (show the math), or *omit*
    (sources conflict). Never invent results or specs.
 2. **Copy `template.html`** into the project/scratchpad and build scenes with its
-   engine (`tw`, `hook`, `roll3d`, `morph`, `counter`, `scene`, `DEPTH`, `cam3d`). Every animation is a
+   engine (`tw`, `hook`, `roll3d`, `morph`, `counter`, `scene`, `DEPTH`, `cam3d`, `box3d`).
+   For a worked 60 s example using all of them, read `examples/chip-transistors.html`. Every animation is a
    paused WAAPI tween or a hook, so the whole piece is scrubbable and renders
    deterministically.
 3. **Verify with stills** at each scene's settled state *and* mid-transition:
@@ -73,6 +74,7 @@ transitions only for product/UI content.
 | **Object wipe** | an object's motion carries us forward (plume, beam, swipe) | wipe element and incoming scene's `clip-path` share the same start, duration and easing |
 | **Container morph** | a summary expands into detail (pill → card) | animate box geometry with `EASE.ios`; old content out in 180 ms, new content in after 250 ms |
 | **Rolling digits** | a number is the point | odometer strips per digit; blur the fast column mid-spin |
+| **Infinite zoom** | going down in scale (chip → cell → transistor, city → street) | one SVG `<g>` with `translate·scale·translate` around a focus point, scale = `exp(ln(S)·p)`; nested grid levels fade in/out by their on-screen spacing; `vector-effect: non-scaling-stroke`; draw the last level from the next scene's projection so it hands off exactly |
 | **Headline roll** | headline change in a flat piece | `roll(outEl, inEl, t)` inside a `.slot` mask; prefer `roll3d` (see Depth) |
 | Crossfade | final card only | — |
 
@@ -91,6 +93,8 @@ built into `template.html` (`.stage` has `perspective: 1600px`).
 | **Tilt back** | a finished block recedes at the end | `DEPTH.tiltBack(deg, z)` |
 | **Coin flip** | SVG dots/badges activate (CSS 3D does not apply to SVG children) | `coin(ellipse, r, p)` from a hook |
 | **3D space / orbit** | point clouds, stacks of layers, rings: content that *is* spatial | `cam3d()` projects world points to stage px; draw in SVG/HTML from a hook, far → near by `depth` |
+| **Solid objects** | devices, components, buildings: anything boxy with thickness | `box3d(svgGroup, cam)`: `B.box({c, s, color, edge, bias})`, `B.seg`, `B.dot`; update fields in a hook, then `B.draw()`. Lit, back-face culled, painter-sorted SVG |
+| **Exploded view** | showing what something is made of (chip layers, a phone's insides) | stacked `box3d` slabs; each layer's y goes from packed to spaced with a 110 ms stagger while the camera orbits; reverse it to close |
 
 Rules:
 - One 3D gesture at a time; flat motion everywhere else.
@@ -100,11 +104,17 @@ Rules:
   so the element ends crisp and pixel-aligned.
 - A transform tween replaces the element's whole `transform`: put geometry in
   `left/top/width/height` and depth in `transform`, or merge both into one keyframe list.
-- `cam3d` front-on (az = el = 0, dist = D) is pixel-identical to the flat layout for any
-  orbit target (the target keeps its own screen position):
+- `cam.set(az, el, dist, tx, ty, tz, sx, sy)`: `sx, sy` is where the target appears on screen.
+  Leave them out and the target keeps its flat position, so front-on (az = el = 0, dist = D)
+  is pixel-identical to the flat layout:
   start and end every orbit there, and swap flat ↔ 3D elements only on those frames.
 - Verify every orbit with stills: perspective lifts near points, so labels that were
   clear front-on can drift into text.
+- When orbiting a group away from the screen centre (e.g. pulling back over several
+  objects), pass `sx, sy` to keep the group framed.
+- `box3d` sorts faces by their centres, which fails when a big face sits under small
+  ones. Give each item a `bias` by stacking order (base `-1000`, parts `0`, things on top
+  `+20`…); the camera must stay above the model for that order to hold.
 
 ## True 3D scenes (Three.js)
 
@@ -168,3 +178,15 @@ renders deterministically. Pattern: `references/three-handoff.js`.
 | Shadow/glow animations snap halfway | keyframes must have matching shadow lists: same count, same inset/outset order |
 | Children with transform entrances go blank after their container was hidden or collapsed (Chromium paint bug with paused animations) | animate opacity + margin for those children, not transform |
 | Heavy blurs, glows and box-shadows on many elements | expect 2-3× render time; use them on few elements |
+| Small inline SVG icons blow up to full-stage size | the template only sizes top-level stage SVGs (`.stage > svg`); keep icon SVGs inside a div |
+| Coplanar faces flicker or a base slab covers parts on top of it | lift parts 1 unit above the surface they sit on and set `bias` by stacking order |
+
+## Examples
+
+- `examples/chip-transistors.html` (+ `.narration.json`): "How a chip with billions of
+  transistors works", 9:16, 60 s. Shows the full toolkit in one continuous world:
+  drum-roll headlines, a `box3d` chip that tilts to reveal its depth, an infinite zoom that
+  hands off to a top-down 3D transistor, the camera tipping down into a 3/4 view, a
+  coin-flip badge, four transistors joining and morphing into a NAND symbol, a truth
+  table that hinges down, a gate grid that gathers into fanned cards, an exploded view
+  of wiring layers, and a clock with flickering cells and a counter.
